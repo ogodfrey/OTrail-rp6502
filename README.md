@@ -90,6 +90,20 @@ supply, so the test stops the emulator after a timeout.
 python tests/playtest.py
 ```
 
+`tests/playthrough.py` plays a whole game on the host. It compiles `src/` with
+gcc (MSYS2 UCRT64, or any gcc on the PATH) together with the stubs in
+`tests/host/`, then drives the game through stdin and stdout. A policy reads
+each prompt and picks an answer. The run ends when the game exits. The answers
+are saved to `tests/playthrough.txt`.
+
+```bash
+python tests/playthrough.py            # play a new game and save the answers
+python tests/playthrough.py --replay   # feed the saved answers back; fails if the game does not exit cleanly
+```
+
+The host build writes its score and grave files to the system temp folder, so
+the test doesn't touch the repo.
+
 ## The game
 
 ### Setup
@@ -335,7 +349,10 @@ console runs in VGA mode 0 below it, with 80 columns and 22 rows.
 | `src/ui.c`, `ui.h`        | Console helpers: line input, numbered prompts, pauses, and money formatting. |
 | `src/xram.h`              | The XRAM memory map: the scene config and bitmap, and the VGA macros.        |
 | `src/help.txt`            | The help text stored in the ROM as the `help` asset.                         |
-| `tests/playtest.py`       | The smoke test.                                                              |
+| `tests/playtest.py`       | The emulator smoke test.                                                     |
+| `tests/playthrough.py`    | The host playthrough: plays a full game and saves the answers.               |
+| `tests/playthrough.txt`   | The answers from the saved playthrough, used by `--replay`.                  |
+| `tests/host/`             | The host shim: stubs for the RIA calls and the XRAM, so `src/` builds with gcc. |
 | `CMakeLists.txt`          | The `oregon` ROM target and its sources.                                     |
 | `CMakePresets.json`       | The llvm-mos Debug and Release presets.                                      |
 | `tools/`                  | The SDK scripts. `rp6502.cmake` fetches the emulator and tools.              |
