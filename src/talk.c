@@ -62,7 +62,7 @@ bool talk_to_people(int landmark, int *turn)
         printf("%s says:\n\"", bar2 + 1);
         {
             char *quote = bar3 + 1;
-            char *nl = strchr(quote, '\n');
+            char *nl = strpbrk(quote, "\r\n");
             if (nl)
                 *nl = '\0';
             print_wrapped(quote);
