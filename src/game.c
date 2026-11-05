@@ -1,5 +1,7 @@
+#include <fcntl.h>
 #include <rp6502.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +9,7 @@
 #include "scene.h"
 #include "talk.h"
 #include "ui.h"
+#include "msg.h"
 
 #define PARTY_SIZE 5
 #define NAME_MAX 9
@@ -37,6 +40,7 @@ enum { ITEM_OXEN, ITEM_CLOTHING, ITEM_AMMO, ITEM_WHEEL, ITEM_AXLE, ITEM_TONGUE, 
 typedef enum {
     ACT_CONTINUE,
     ACT_SUPPLIES,
+    ACT_MAP,
     ACT_PACE,
     ACT_RATIONS,
     ACT_REST,
@@ -72,6 +76,16 @@ typedef struct {
     int lo;
     int hi;
 } range_t;
+
+#define GRAVE_FILE "oregon.grv"
+#define EPITAPH_MAX 29
+
+typedef struct {
+    uint8_t leg;
+    int left;
+    char name[NAME_LEN];
+    char epitaph[EPITAPH_MAX + 1];
+} grave_t;
 
 typedef struct {
     char name[NAME_LEN];
@@ -113,6 +127,10 @@ typedef struct {
     bool said;
     bool won;
     int talk_turn;
+    char leader[NAME_LEN];
+    unsigned long visited;
+    grave_t grave;
+    bool has_grave;
 } game_t;
 
 /* Index 0 is Independence. A landmark's leg is the one it departs on. */
@@ -196,9 +214,10 @@ static const char *const item_plural[ITEM_COUNT] = {
 static const char *const item_singular[ITEM_COUNT] = {
     "ox", "set of clothing", "bullet", "wagon wheel", "wagon axle", "wagon tongue", "pound of food"};
 
-static const char *const action_label[10] = {
+static const char *const action_label[11] = {
     "Continue on the trail",
     "Check supplies",
+    "Look at the map",
     "Change pace",
     "Change food rations",
     "Stop to rest",
@@ -287,9 +306,9 @@ static const char *health_word(float h)
 
 static void print_oxen(int ox2)
 {
-    printf("%d", ox2 / 2);
+    printf(msg_get(0), ox2 / 2);
     if (ox2 & 1)
-        printf(".5");
+        printf(msg_get(1));
 }
 
 static void advance_day(game_t *g)
@@ -349,7 +368,7 @@ static void report_loss(game_t *g, bool *head, const char *heading, int n, const
         say(g, heading);
         *head = true;
     }
-    printf("  %d %s\n", n, label);
+    printf(msg_get(2), n, label);
 }
 
 static void lose_count(game_t *g, int *count, float p, const char *label, const char *heading, bool *head)
@@ -470,21 +489,21 @@ static void broken_wagon(game_t *g)
 
     sprintf(buf, "A wagon %s is broken.", part_name[p]);
     say(g, buf);
-    if (ui_ask_int("1) Try to repair it   2) Do not try: ", 1, 2) == 1 && chance(0.5f))
-        say(g, "You repaired the wagon.");
+    if (ui_ask_int(msg_get(3), 1, 2) == 1 && chance(0.5f))
+        say(g, msg_get(4));
     else if (g->spares[p] > 0) {
         g->spares[p]--;
-        say(g, "You used a spare to fix the wagon.");
+        say(g, msg_get(5));
     } else {
         g->broken = p + 1;
-        say(g, "Since you don't have a spare, you must trade for one.");
+        say(g, msg_get(6));
     }
     rest_days(g, 1);
 }
 
 static void fire(game_t *g)
 {
-    say(g, "A fire breaks out in the wagon.");
+    say(g, msg_get(7));
     lose_goods(g, 0.5f, "The fire destroyed:");
 }
 
@@ -524,33 +543,98 @@ static void thief(game_t *g)
         if (whole_oxen(g) > 0) {
             n = ranged(1, imin(whole_oxen(g), 100));
             g->ox2 -= 2 * n;
-            printf("Thieves stole %d oxen.\n", n);
+            printf(msg_get(8), n);
         }
         break;
     case 1:
         if (g->clothing > 0) {
             n = ranged(1, imin(g->clothing, 100));
             g->clothing -= n;
-            printf("Thieves stole %d sets of clothing.\n", n);
+            printf(msg_get(9), n);
         }
         break;
     case 2:
         if (g->bullets > 0) {
             n = ranged(1, imin(g->bullets, 100));
             g->bullets -= n;
-            printf("Thieves stole %d bullets.\n", n);
+            printf(msg_get(10), n);
         }
         break;
     case 3:
         if (g->food > 0) {
             n = ranged(1, imin(g->food, 100));
             g->food -= n;
-            printf("Thieves stole %d pounds of food.\n", n);
+            printf(msg_get(11), n);
         }
         break;
     }
     if (n)
         g->said = true;
+}
+
+/* The graves are records in GRAVE_FILE. A grave lies on a leg, some miles
+   before its end. */
+static bool grave_next(int leg, int below, grave_t *out)
+{
+    int fd = open(GRAVE_FILE, O_RDONLY);
+    grave_t rec;
+    bool found = false;
+
+    if (fd < 0)
+        return false;
+    while (read(fd, &rec, sizeof(rec)) == (int)sizeof(rec)) {
+        if (rec.leg == leg && rec.left < below && (!found || rec.left > out->left)) {
+            *out = rec;
+            found = true;
+        }
+    }
+    close(fd);
+    return found;
+}
+
+static void grave_select(game_t *g)
+{
+    g->has_grave = grave_next(g->leg, (int)g->dist + 1, &g->grave);
+}
+
+static void grave_write(game_t *g)
+{
+    grave_t rec;
+    int fd;
+
+    memset(&rec, 0, sizeof(rec));
+    rec.leg = (uint8_t)g->leg;
+    rec.left = (int)g->dist;
+    strcpy(rec.name, g->leader);
+    printf(msg_get(12), EPITAPH_MAX);
+    ui_read_line(rec.epitaph, EPITAPH_MAX + 1);
+    fd = open(GRAVE_FILE, O_WRONLY | O_CREAT | O_APPEND);
+    if (fd < 0)
+        return;
+    write(fd, &rec, sizeof(rec));
+    close(fd);
+}
+
+static void show_grave(const grave_t *gr)
+{
+    printf(msg_get(13), gr->name, gr->epitaph);
+    ui_pause();
+}
+
+static void show_map(game_t *g)
+{
+    int i;
+
+    ui_clear();
+    printf(msg_get(14));
+    for (i = 0; i < (int)(sizeof(landmarks) / sizeof(landmarks[0])); i++) {
+        bool seen = (g->visited >> i) & 1UL;
+        printf(msg_get(15), seen ? "[x]" : "[ ]", landmarks[i].name,
+               i == g->lm ? "  <- you are here" : "");
+    }
+    printf(msg_get(16), (int)g->miles);
+    printf(msg_get(17), landmarks[legs[g->leg].to].name, (int)(g->dist + 0.5f));
+    ui_pause();
 }
 
 static float event_chance(const game_t *g, int k, int zone)
@@ -559,6 +643,7 @@ static float event_chance(const game_t *g, int k, int zone)
     case 0: return g->as > 30.0f ? 1.0f : 0.0f;
     case 1: return 0.007f;
     case 3: return 0.01f + g->health / 1500.0f;
+    case 4: return g->has_grave && g->dist < g->grave.left ? 1.0f : 0.0f;
     case 5: return g->food == 0 ? 0.05f : 0.0f;
     case 6: return (g->weather > 7 ? 1.0f : 0.0f) + (g->tm < 2 ? 0.15f : 0.0f);
     case 7: return 0.06f;
@@ -577,7 +662,7 @@ static void run_event(game_t *g, int k)
 {
     switch (k) {
     case 0:
-        say(g, "Snow bound.");
+        say(g, msg_get(18));
         rest_days(g, ranged(1, 10));
         break;
     case 1:
@@ -587,28 +672,37 @@ static void run_event(game_t *g, int k)
     case 3:
         illness(g);
         break;
+    case 4: {
+        grave_t here = g->grave;
+
+        say(g, msg_get(19));
+        if (ui_ask_int(msg_get(20), 1, 2) == 1)
+            show_grave(&here);
+        g->has_grave = grave_next(g->leg, here.left, &g->grave);
+        break;
+    }
     case 5:
         g->food += 30;
-        say(g, "Indians help you find food. You gain 30 pounds.");
+        say(g, msg_get(21));
         break;
     case 6:
         if (g->tm < 2) {
-            say(g, "Severe blizzard.");
+            say(g, msg_get(22));
             g->as += 8.0f;
             rest_days(g, 1);
         } else if (g->tm > 3) {
-            say(g, "Severe thunderstorm.");
+            say(g, msg_get(23));
             g->ar += 1.0f;
             rest_days(g, 1);
         }
         break;
     case 7:
         if (g->lm > 11 && g->tm < 5) {
-            say(g, "Heavy fog.");
+            say(g, msg_get(24));
             if (chance(0.5f))
                 rest_days(g, 1);
         } else if (g->lm <= 11 && g->tm == 5) {
-            say(g, "Hail storm.");
+            say(g, msg_get(25));
         }
         break;
     case 8:
@@ -629,16 +723,16 @@ static void run_event(game_t *g, int k)
         break;
     case 10:
         if (chance(0.5f)) {
-            say(g, "The trail is rough.");
+            say(g, msg_get(26));
             g->hr += 10.0f;
         } else {
-            say(g, "The trail is impassable.");
+            say(g, msg_get(27));
             rest_days(g, ranged(1, 10));
         }
         break;
     case 11:
         g->food += 20;
-        say(g, "You found wild fruit. You gain 20 pounds of food.");
+        say(g, msg_get(28));
         break;
     case 12:
         switch (rnd(3)) {
@@ -653,7 +747,7 @@ static void run_event(game_t *g, int k)
             break;
         }
         default:
-            say(g, "One of the oxen wanders off.");
+            say(g, msg_get(29));
             rest_days(g, ranged(1, 3));
             break;
         }
@@ -666,13 +760,13 @@ static void run_event(game_t *g, int k)
         break;
     case 14:
         if (chance(0.2f)) {
-            say(g, "The water is bad.");
+            say(g, msg_get(30));
             g->hr += 20.0f;
         } else if (chance(0.5f)) {
-            say(g, "There is very little water.");
+            say(g, msg_get(31));
             g->hr += 10.0f;
         } else {
-            say(g, "There is inadequate grass.");
+            say(g, msg_get(32));
         }
         break;
     }
@@ -835,27 +929,27 @@ static void draw_status(game_t *g)
 
     scene_draw(scene_for(g), winter);
     ui_clear();
-    printf("%s %d, %d    Miles: %d of 2040\n", month_name[m], g->day, g->year, (int)g->miles);
-    printf("Weather: %s\n", weather_name[g->weather]);
-    printf("Next: %s, %d miles away\n", landmarks[next].name, (int)(g->dist + 0.5f));
-    printf("Health: %s    Pace: %s    Rations: %s\n",
+    printf(msg_get(33), month_name[m], g->day, g->year, (int)g->miles);
+    printf(msg_get(34), weather_name[g->weather]);
+    printf(msg_get(35), landmarks[next].name, (int)(g->dist + 0.5f));
+    printf(msg_get(36),
            health_word(g->health),
            g->pace == PACE_STEADY ? "Steady" : g->pace == PACE_STRENUOUS ? "Strenuous" : "Grueling",
            g->rations == RATION_FILLING ? "Filling" : g->rations == RATION_MEAGER ? "Meager" : "Bare-bones");
-    printf("Money ");
+    printf(msg_get(37));
     ui_print_money(g->money);
-    printf("  Food %d lb  Bullets %d  Clothing %d\n", g->food, g->bullets, g->clothing);
-    printf("Oxen ");
+    printf(msg_get(38), g->food, g->bullets, g->clothing);
+    printf(msg_get(39));
     print_oxen(g->ox2);
-    printf("  Wheels %d  Axles %d  Tongues %d\n", g->spares[PART_WHEEL], g->spares[PART_AXLE], g->spares[PART_TONGUE]);
-    printf("Party\n");
+    printf(msg_get(40), g->spares[PART_WHEEL], g->spares[PART_AXLE], g->spares[PART_TONGUE]);
+    printf(msg_get(41));
     for (i = 0; i < g->np; i++) {
         if (g->party[i].affl >= 0)
-            printf("  %-16s %s\n", g->party[i].name, affliction_name[g->party[i].affl]);
+            printf(msg_get(42), g->party[i].name, affliction_name[g->party[i].affl]);
         else
-            printf("  %s\n", g->party[i].name);
+            printf(msg_get(43), g->party[i].name);
     }
-    printf("\n");
+    printf(msg_get(44));
 }
 
 static void resolve_broken(game_t *g)
@@ -863,7 +957,7 @@ static void resolve_broken(game_t *g)
     if (g->broken && g->spares[g->broken - 1] > 0) {
         g->spares[g->broken - 1]--;
         g->broken = 0;
-        say(g, "You used a spare to fix the wagon.");
+        say(g, msg_get(45));
     }
 }
 
@@ -891,26 +985,26 @@ static void matts_store(game_t *g)
         for (i = 0; i < 7; i++)
             bill += unit[i] * *qty[i];
         ui_clear();
-        printf("MATT'S GENERAL STORE        Money: ");
+        printf(msg_get(46));
         ui_print_money(g->money);
-        printf("\n\n");
+        printf(msg_get(47));
         for (i = 0; i < 7; i++) {
-            printf("%d) %-24s ", i + 1, labels[i]);
+            printf(msg_get(48), i + 1, labels[i]);
             ui_print_money(unit[i]);
-            printf("   have %d\n", *qty[i]);
+            printf(msg_get(49), *qty[i]);
         }
-        printf("0) Leave the store\n\nBill: ");
+        printf(msg_get(50));
         ui_print_money(bill);
-        printf("\n");
-        choice = ui_ask_int("Buy what? ", 0, 7);
+        printf(msg_get(51));
+        choice = ui_ask_int(msg_get(52), 0, 7);
         if (choice == 0) {
             if (bill > g->money) {
-                say(g, "We'd better go over the list again.");
+                say(g, msg_get(53));
                 ui_pause();
                 continue;
             }
             if (yoke == 0) {
-                say(g, "Don't forget, you'll need oxen to pull your wagon.");
+                say(g, msg_get(54));
                 ui_pause();
                 continue;
             }
@@ -923,7 +1017,7 @@ static void matts_store(game_t *g)
                 g->spares[i] += part[i];
             return;
         }
-        *qty[choice - 1] = ui_ask_int("How many? ", 0, limits[choice - 1]);
+        *qty[choice - 1] = ui_ask_int(msg_get(55), 0, limits[choice - 1]);
     }
 }
 
@@ -936,23 +1030,23 @@ static void fort_store(game_t *g)
 
     for (;;) {
         ui_clear();
-        printf("FORT STORE                  Money: ");
+        printf(msg_get(56));
         ui_print_money(g->money);
-        printf("\n\n");
+        printf(msg_get(57));
         for (i = 0; i < ITEM_COUNT; i++) {
-            printf("%d) %-24s ", i + 1, item_label[i]);
+            printf(msg_get(58), i + 1, item_label[i]);
             ui_print_money(fort_base_cents[i] * mult / 4L);
-            printf("\n");
+            printf(msg_get(59));
         }
-        printf("0) Leave the store\n");
-        choice = ui_ask_int("Buy what? ", 0, ITEM_COUNT);
+        printf(msg_get(60));
+        choice = ui_ask_int(msg_get(61), 0, ITEM_COUNT);
         if (choice == 0)
             return;
         item = choice - 1;
         price = fort_base_cents[item] * mult / 4L;
         afford = (int)(g->money / price);
         if (afford == 0) {
-            say(g, "You cannot afford that.");
+            say(g, msg_get(62));
             ui_pause();
             continue;
         }
@@ -961,17 +1055,17 @@ static void fort_store(game_t *g)
             int room = cap - item_have(g, item);
             if (room <= 0) {
                 if (item == ITEM_OXEN)
-                    say(g, "You may only take 20 oxen.");
+                    say(g, msg_get(63));
                 else if (item == ITEM_FOOD)
-                    say(g, "Your wagon may only carry 2000 pounds of food.");
+                    say(g, msg_get(64));
                 else
-                    say(g, "Your wagon may only carry 3 parts.");
+                    say(g, msg_get(65));
                 ui_pause();
                 continue;
             }
             afford = imin(afford, room);
         }
-        n = ui_ask_int("How many? ", 0, afford);
+        n = ui_ask_int(msg_get(66), 0, afford);
         if (n == 0)
             continue;
         g->money -= price * n;
@@ -986,7 +1080,7 @@ static void do_trade(game_t *g)
     char buf[120];
 
     if (chance(0.05f)) {
-        say(g, "No one wants to trade with you today.");
+        say(g, msg_get(67));
         rest_days(g, 1);
         return;
     }
@@ -1008,19 +1102,19 @@ static void do_trade(game_t *g)
     }
     cap = item_cap(y);
     if (cap >= 0 && item_have(g, y) + get > cap) {
-        say(g, "No one wants to trade with you today.");
+        say(g, msg_get(68));
         rest_days(g, 1);
         return;
     }
-    printf("An emigrant wants %d %s and will trade you %d %s.\n",
+    printf(msg_get(69),
            give, give == 1 ? item_singular[x] : item_plural[x],
            get, get == 1 ? item_singular[y] : item_plural[y]);
-    if (ui_ask_int("1) Accept the trade   2) Decline: ", 1, 2) == 2) {
+    if (ui_ask_int(msg_get(70), 1, 2) == 2) {
         rest_days(g, 1);
         return;
     }
     if (item_have(g, x) < give) {
-        say(g, "You don't have this.");
+        say(g, msg_get(71));
     } else {
         item_take(g, x, give);
         item_add(g, y, get);
@@ -1039,11 +1133,11 @@ static void do_hunt(game_t *g)
     long gained = 0;
 
     if (g->bullets <= 0) {
-        say(g, "You have no bullets.");
+        say(g, msg_get(72));
         ui_pause();
         return;
     }
-    shots = ui_ask_int("How many bullets to use? (0 to cancel) ", 0, g->bullets);
+    shots = ui_ask_int(msg_get(73), 0, g->bullets);
     if (shots == 0)
         return;
     g->bullets -= shots;
@@ -1071,7 +1165,7 @@ static void do_hunt(game_t *g)
     if (gained < 0)
         gained = 0;
     g->food += (int)gained;
-    printf("You shot %d animals and brought back %ld pounds of meat.\n", kills, gained);
+    printf(msg_get(74), kills, gained);
     g->said = true;
     rest_days(g, 1);
 }
@@ -1079,39 +1173,39 @@ static void do_hunt(game_t *g)
 static void change_pace(game_t *g)
 {
     ui_clear();
-    printf("1) Steady   2) Strenuous   3) Grueling\n");
-    g->pace = ui_ask_int("Pace: ", 1, 3) - 1;
+    printf(msg_get(75));
+    g->pace = ui_ask_int(msg_get(76), 1, 3) - 1;
 }
 
 static void change_rations(game_t *g)
 {
     ui_clear();
-    printf("1) Filling   2) Meager   3) Bare-bones\n");
-    g->rations = ui_ask_int("Rations: ", 1, 3) - 1;
+    printf(msg_get(77));
+    g->rations = ui_ask_int(msg_get(78), 1, 3) - 1;
 }
 
 static void check_supplies(game_t *g)
 {
     ui_clear();
-    printf("Oxen ");
+    printf(msg_get(79));
     print_oxen(g->ox2);
-    printf("\nClothing %d sets\nBullets %d\nWagon wheels %d, axles %d, tongues %d\n",
+    printf(msg_get(80),
            g->clothing, g->bullets, g->spares[PART_WHEEL], g->spares[PART_AXLE], g->spares[PART_TONGUE]);
-    printf("Food %d lb\nMoney ", g->food);
+    printf(msg_get(81), g->food);
     ui_print_money(g->money);
-    printf("\n");
+    printf(msg_get(82));
     ui_pause();
 }
 
 static bool confirm_quit(void)
 {
-    return ui_ask_int("1) Yes, give up the journey   2) No: ", 1, 2) == 1;
+    return ui_ask_int(msg_get(83), 1, 2) == 1;
 }
 
 static bool action_menu(game_t *g, bool at_landmark)
 {
     for (;;) {
-        action_t acts[10];
+        action_t acts[11];
         int n = 0, c, i;
         bool store = landmarks[g->lm].type == LM_STORE;
 
@@ -1123,6 +1217,7 @@ static bool action_menu(game_t *g, bool at_landmark)
         draw_status(g);
         acts[n++] = ACT_CONTINUE;
         acts[n++] = ACT_SUPPLIES;
+        acts[n++] = ACT_MAP;
         acts[n++] = ACT_PACE;
         acts[n++] = ACT_RATIONS;
         acts[n++] = ACT_REST;
@@ -1135,17 +1230,17 @@ static bool action_menu(game_t *g, bool at_landmark)
             acts[n++] = ACT_TALK;
         acts[n++] = ACT_QUIT;
         for (i = 0; i < n; i++)
-            printf("%d) %s\n", i + 1, action_label[acts[i]]);
-        c = ui_ask_int("Choose: ", 1, n);
+            printf(msg_get(84), i + 1, action_label[acts[i]]);
+        c = ui_ask_int(msg_get(85), 1, n);
 
         switch (acts[c - 1]) {
         case ACT_CONTINUE:
             if (!blocked(g))
                 return true;
             if (g->broken)
-                say(g, "You must trade for a spare wagon part before you can continue.");
+                say(g, msg_get(86));
             else
-                say(g, "You have no oxen to pull the wagon. Buy or trade for oxen first.");
+                say(g, msg_get(87));
             break;
         case ACT_SUPPLIES:
             check_supplies(g);
@@ -1159,7 +1254,7 @@ static bool action_menu(game_t *g, bool at_landmark)
         case ACT_REST: {
             int days;
             ui_clear();
-            days = ui_ask_int("How many days would you like to rest? (0-9) ", 0, MAX_REST_DAYS);
+            days = ui_ask_int(msg_get(88), 0, MAX_REST_DAYS);
             rest_days(g, days);
             break;
         }
@@ -1174,6 +1269,9 @@ static bool action_menu(game_t *g, bool at_landmark)
                 matts_store(g);
             else
                 fort_store(g);
+            break;
+        case ACT_MAP:
+            show_map(g);
             break;
         case ACT_TALK:
             talk_to_people(g->lm, &g->talk_turn);
@@ -1196,6 +1294,7 @@ static void announce_next(game_t *g)
     sprintf(buf, "The next landmark is %s, %d miles away.",
             landmarks[legs[g->leg].to].name, (int)legs[g->leg].miles);
     say(g, buf);
+    grave_select(g);
 }
 
 static void start_leg(game_t *g)
@@ -1210,10 +1309,10 @@ static void split_choice(game_t *g)
     const landmark_t *lm = &landmarks[g->lm];
     int a = lm->leg, b = lm->alt_leg;
 
-    printf("The trail divides.\n");
-    printf("1) Head for %s, %d miles\n", landmarks[legs[a].to].name, (int)legs[a].miles);
-    printf("2) Head for %s, %d miles\n", landmarks[legs[b].to].name, (int)legs[b].miles);
-    g->leg = ui_ask_int("Choose: ", 1, 2) == 1 ? a : b;
+    printf(msg_get(89));
+    printf(msg_get(90), landmarks[legs[a].to].name, (int)legs[a].miles);
+    printf(msg_get(91), landmarks[legs[b].to].name, (int)legs[b].miles);
+    g->leg = ui_ask_int(msg_get(92), 1, 2) == 1 ? a : b;
     g->dist = legs[g->leg].miles;
     announce_next(g);
 }
@@ -1224,26 +1323,26 @@ static void ford(game_t *g, const river_t *r, float depth, float ix)
 
     if (rd < 2.5f) {
         if (r->bottom == 0) {
-            say(g, "You crossed the river without trouble.");
+            say(g, msg_get(93));
         } else if (r->bottom == 1) {
             if (chance(0.4f / ix)) {
-                say(g, "The wagon got stuck in the mud. You lose 1 day.");
+                say(g, msg_get(94));
                 rest_days(g, 1);
             } else {
-                say(g, "The crossing was muddy, but the wagon did not get stuck.");
+                say(g, msg_get(95));
             }
         } else if (chance(0.16f / ix)) {
-            say(g, "The wagon tipped over.");
+            say(g, msg_get(96));
             if (!lose_goods(g, 0.1f + 0.3f * rndf(), "You lost:"))
-                say(g, "You did not lose anything.");
+                say(g, msg_get(97));
         } else {
-            say(g, "The crossing was rough, but the wagon stayed upright.");
+            say(g, msg_get(98));
         }
     } else if (rd < 3.0f) {
-        say(g, "Your supplies got wet. You lose 1 day.");
+        say(g, msg_get(99));
         rest_days(g, 1);
     } else {
-        say(g, "The river is too deep to ford.");
+        say(g, msg_get(100));
         lose_goods(g, rd / 10.0f / ix, "You lost:");
         lose_oxen(g, (rd - 1.0f) / 10.0f / ix, "You lost oxen:");
         drown(g, (rd - 2.5f) / 10.0f / ix);
@@ -1256,16 +1355,16 @@ static bool float_across(game_t *g, float depth, float swift, float ix)
     float tip = rd > 2.5f ? (swift / 20.0f) / ix : 0.0f;
 
     if (rd < 1.5f) {
-        say(g, "The river is too shallow to float across.");
+        say(g, msg_get(101));
         return false;
     }
     rest_days(g, 1);
     if (chance(tip)) {
-        say(g, "The wagon tipped over while floating.");
+        say(g, msg_get(102));
         lose_goods(g, (0.4f + swift / 25.0f) / ix, "You lost:");
         drown(g, ((swift - 3.0f) / 15.0f) / ix);
     } else {
-        say(g, "The wagon floated across.");
+        say(g, msg_get(103));
     }
     return true;
 }
@@ -1275,11 +1374,11 @@ static bool ferry(game_t *g, float depth, float swift)
     float p = 0.0f;
 
     if (round1(depth) < 2.5f) {
-        say(g, "The ferry is not operating today because the river is too shallow.");
+        say(g, msg_get(104));
         return false;
     }
     if (g->money < FERRY_CENTS) {
-        say(g, "You cannot afford the ferry.");
+        say(g, msg_get(105));
         return false;
     }
     g->money -= FERRY_CENTS;
@@ -1289,12 +1388,12 @@ static bool ferry(game_t *g, float depth, float swift)
     if (swift > 10.0f)
         p += 0.1f;
     if (chance(p)) {
-        say(g, "The ferry broke loose from its moorings.");
+        say(g, msg_get(106));
         lose_goods(g, 0.8f, "You lost:");
         drown(g, 0.2f);
         lose_oxen(g, 0.5f, "You lost oxen:");
     } else {
-        say(g, "The ferry carried your wagon across.");
+        say(g, msg_get(107));
     }
     return true;
 }
@@ -1303,11 +1402,11 @@ static bool guide(game_t *g, const river_t *r, float depth)
 {
     int n = ranged(2, 3);
 
-    printf("A guide offers to take your wagon across for %d sets of clothing.\n", n);
-    if (ui_ask_int("1) Accept   2) Decline: ", 1, 2) == 2)
+    printf(msg_get(108), n);
+    if (ui_ask_int(msg_get(109), 1, 2) == 2)
         return false;
     if (g->clothing < n) {
-        printf("You don't have %d sets of clothing.\n", n);
+        printf(msg_get(110), n);
         return false;
     }
     g->clothing -= n;
@@ -1330,7 +1429,7 @@ static void river_crossing(game_t *g, int lm)
         int opt[4], n = 0, c, done = 0;
         const char *labels[4] = {"Ford the river", "Caulk the wagon and float it", "Take the ferry", "Hire the guide"};
 
-        printf("The river is %d feet across and %d.%d feet deep in the middle.\n", width, tenths / 10, tenths % 10);
+        printf(msg_get(111), width, tenths / 10, tenths % 10);
         opt[n++] = 0;
         opt[n++] = 1;
         if (r->extra == 2)
@@ -1339,8 +1438,8 @@ static void river_crossing(game_t *g, int lm)
             opt[n++] = 3;
         opt[n++] = 4;
         for (c = 0; c < n; c++)
-            printf("%d) %s\n", c + 1, opt[c] == 4 ? "Wait a day" : labels[opt[c]]);
-        c = ui_ask_int("Choose: ", 1, n);
+            printf(msg_get(112), c + 1, opt[c] == 4 ? "Wait a day" : labels[opt[c]]);
+        c = ui_ask_int(msg_get(113), 1, n);
 
         g->crossing = true;
         switch (opt[c - 1]) {
@@ -1358,7 +1457,7 @@ static void river_crossing(game_t *g, int lm)
             done = guide(g, r, depth);
             break;
         case 4:
-            say(g, "You camp near the river for a day.");
+            say(g, msg_get(114));
             rest_days(g, 1);
             break;
         }
@@ -1379,12 +1478,12 @@ static void columbia_raft(game_t *g)
     g->crossing = true;
     for (h = 0; h < 3 && g->np > 0; h++) {
         if (chance(2.0f / 3.0f)) {
-            say(g, "The raft struck a rock.");
+            say(g, msg_get(115));
             drown(g, 0.6f);
             lose_oxen(g, 0.6f, "You lost oxen:");
             lose_goods(g, 0.7f, "You lost:");
         } else {
-            say(g, "The raft struck the shore.");
+            say(g, msg_get(116));
             drown(g, 0.15f);
             lose_oxen(g, 0.3f, "You lost oxen:");
             lose_goods(g, 0.5f, "You lost:");
@@ -1399,21 +1498,21 @@ static bool dalles_choice(game_t *g)
         long toll = TOLL_BASE_CENTS + TOLL_PER_OX_CENTS * ((g->ox2 + 1) / 2);
         int c;
 
-        printf("The trail divides here.\n");
-        printf("1) Float down the Columbia River on a raft\n");
-        printf("2) Take the Barlow Toll Road, toll ");
+        printf(msg_get(117));
+        printf(msg_get(118));
+        printf(msg_get(119));
         ui_print_money(toll);
-        printf("\n");
-        c = ui_ask_int("Choose: ", 1, 2);
+        printf(msg_get(120));
+        c = ui_ask_int(msg_get(121), 1, 2);
         if (c == 1) {
             columbia_raft(g);
             if (g->np > 0)
-                say(g, "The raft reached the landing.");
+                say(g, msg_get(122));
             g->won = g->np > 0;
             return false;
         }
         if (g->money < toll) {
-            say(g, "You do not have enough cash.");
+            say(g, msg_get(123));
             ui_pause();
             continue;
         }
@@ -1430,6 +1529,7 @@ static bool arrive(game_t *g)
     char buf[80];
 
     g->lm = legs[g->leg].to;
+    g->visited |= 1UL << g->lm;
     sprintf(buf, "You have reached %s.", landmarks[g->lm].name);
     say(g, buf);
     if (g->lm == LAST_LANDMARK) {
@@ -1468,19 +1568,20 @@ static void setup_party(game_t *g)
     char prompt[48];
 
     ui_clear();
-    printf("Choose your profession:\n");
-    printf("1) Banker, ");
+    printf(msg_get(124));
+    printf(msg_get(125));
     ui_print_money(occ_money[0]);
-    printf("\n2) Carpenter, ");
+    printf(msg_get(126));
     ui_print_money(occ_money[1]);
-    printf("\n3) Farmer, ");
+    printf(msg_get(127));
     ui_print_money(occ_money[2]);
-    printf("\n");
-    g->occ = ui_ask_int("Choose: ", 1, 3);
+    printf(msg_get(128));
+    g->occ = ui_ask_int(msg_get(129), 1, 3);
     g->money = occ_money[g->occ - 1];
-    printf("You are a %s.\n\n", occ_name[g->occ - 1]);
+    printf(msg_get(130), occ_name[g->occ - 1]);
 
     ask_name(g->party[0].name, "Name of the party leader: ", "Pioneer");
+    strcpy(g->leader, g->party[0].name);
     for (i = 1; i < PARTY_SIZE; i++) {
         sprintf(prompt, "Name of companion %d (Enter for %s): ", i, default_names[i - 1]);
         ask_name(g->party[i].name, prompt, default_names[i - 1]);
@@ -1493,8 +1594,8 @@ static void setup_party(game_t *g)
 static void choose_departure(game_t *g)
 {
     ui_clear();
-    printf("Departure month:\n1) March\n2) April\n3) May\n4) June\n5) July\n");
-    g->month = ui_ask_int("Choose: ", 1, 5) + 1;
+    printf(msg_get(131));
+    g->month = ui_ask_int(msg_get(132), 1, 5) + 1;
     g->day = 1;
     g->year = START_YEAR;
 }
@@ -1536,11 +1637,11 @@ static void show_arrival(game_t *g, long pts)
     const char *rating = pts >= 6000 ? "Trail guide" : pts >= 3000 ? "Adventurer" : "Greenhorn";
 
     ui_clear();
-    printf("Congratulations! You have made it to Oregon!\n\n");
-    printf("%s %d, %d\n", month_name[g->month], g->day, g->year);
-    printf("Survivors: %d of %d\n", g->np, PARTY_SIZE);
-    printf("Points: %ld\n", pts);
-    printf("Rating: %s\n", rating);
+    printf(msg_get(133));
+    printf(msg_get(134), month_name[g->month], g->day, g->year);
+    printf(msg_get(135), g->np, PARTY_SIZE);
+    printf(msg_get(136), pts);
+    printf(msg_get(137), rating);
     ui_pause();
 }
 
@@ -1553,6 +1654,7 @@ void game_play(game_result_t *result)
 
     memset(&g, 0, sizeof(g));
     g.leg = -1;
+    g.visited = 1UL;
     setup_party(&g);
     choose_departure(&g);
     start_conditions(&g);
@@ -1575,7 +1677,8 @@ void game_play(game_result_t *result)
         show_arrival(&g, pts);
     } else if (g.np == 0) {
         ui_clear();
-        printf("All of the people in your party have died.\n");
+        printf(msg_get(138));
+        grave_write(&g);
         ui_pause();
     }
     result->score = g.won ? pts : 0L;

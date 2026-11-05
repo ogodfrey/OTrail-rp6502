@@ -7,6 +7,7 @@
 #include "game.h"
 #include "scene.h"
 #include "ui.h"
+#include "msg.h"
 #include "xram.h"
 
 #define SCORE_FILE "oregon.sco"
@@ -18,75 +19,87 @@ typedef struct
     char name[NAME_LEN];
 } score_entry_t;
 
-static score_entry_t high_scores[SCORE_SLOTS];
-
-static void scores_load(void)
+static void scores_init(void)
 {
-    int fd = open(SCORE_FILE, O_RDONLY);
+    score_entry_t blank;
+    int fd, i;
 
+    fd = open(SCORE_FILE, O_RDONLY);
+    if (fd >= 0) {
+        close(fd);
+        return;
+    }
+    memset(&blank, 0, sizeof(blank));
+    fd = open(SCORE_FILE, O_WRONLY | O_CREAT | O_TRUNC);
     if (fd < 0)
         return;
-    read(fd, high_scores, sizeof(high_scores));
-    close(fd);
-}
-
-static void scores_save(void)
-{
-    int fd = open(SCORE_FILE, O_WRONLY | O_CREAT | O_TRUNC);
-
-    if (fd < 0)
-        return;
-    write(fd, high_scores, sizeof(high_scores));
+    for (i = 0; i < SCORE_SLOTS; ++i)
+        write(fd, &blank, sizeof(blank));
     close(fd);
 }
 
 static void scores_add(long score, const char *name)
 {
-    int i, pos = -1;
+    score_entry_t e;
+    int i, pos = -1, fd;
 
-    for (i = 0; i < SCORE_SLOTS; ++i)
-    {
-        if (score > high_scores[i].score)
-        {
-            pos = i;
-            break;
-        }
-    }
-    if (pos < 0)
+    scores_init();
+    fd = open(SCORE_FILE, O_RDWR);
+    if (fd < 0)
         return;
-
-    for (i = SCORE_SLOTS - 1; i > pos; --i)
-        high_scores[i] = high_scores[i - 1];
-    high_scores[pos].score = score;
-    strcpy(high_scores[pos].name, name);
-    scores_save();
+    for (i = 0; i < SCORE_SLOTS && pos < 0; ++i) {
+        read(fd, &e, sizeof(e));
+        if (score > e.score)
+            pos = i;
+    }
+    if (pos < 0) {
+        close(fd);
+        return;
+    }
+    for (i = SCORE_SLOTS - 1; i > pos; --i) {
+        lseek(fd, (long)(i - 1) * sizeof(e), SEEK_SET);
+        read(fd, &e, sizeof(e));
+        lseek(fd, (long)i * sizeof(e), SEEK_SET);
+        write(fd, &e, sizeof(e));
+    }
+    memset(&e, 0, sizeof(e));
+    e.score = score;
+    strcpy(e.name, name);
+    lseek(fd, (long)pos * sizeof(e), SEEK_SET);
+    write(fd, &e, sizeof(e));
+    close(fd);
 }
 
 static void show_high_scores(void)
 {
-    int i;
+    score_entry_t e;
+    int i, fd;
 
+    scores_init();
+    fd = open(SCORE_FILE, O_RDONLY);
     ui_clear();
-    printf("HIGH SCORES\n\n");
+    printf(msg_get(139));
     for (i = 0; i < SCORE_SLOTS; ++i)
     {
-        if (high_scores[i].score > 0)
-            printf("%d) %-16s %ld\n", i + 1, high_scores[i].name, high_scores[i].score);
+        if (fd >= 0 && read(fd, &e, sizeof(e)) == (int)sizeof(e) && e.score > 0)
+            printf(msg_get(140), i + 1, e.name, e.score);
         else
-            printf("%d) ---\n", i + 1);
+            printf(msg_get(141), i + 1);
     }
+    if (fd >= 0)
+        close(fd);
     ui_pause();
 }
 
 static void show_title(void)
 {
     ui_clear();
-    printf("THE OREGON TRAIL\n\n");
-    printf("Independence, Missouri, 1848.\n");
-    printf("Lead your party 2040 miles to the Willamette\n");
-    printf("Valley in Oregon. Buy supplies, pick a pace,\n");
-    printf("hunt, cross rivers, and keep everyone alive.\n\n");
-    printf("1) Start a new journey\n2) High scores\n3) Quit\n\n");
+    printf(msg_get(142));
+    printf(msg_get(143));
+    printf(msg_get(144));
+    printf(msg_get(145));
+    printf(msg_get(146));
+    printf(msg_get(147));
 }
 
 int main(void)
@@ -107,13 +120,12 @@ int main(void)
     xreg_vga_mode3(MODE3_4BPP, XRAM_SCENE_CONFIG, 0, 0, SCENE_HEIGHT_PX);
     xreg_vga_mode0(0, SCENE_HEIGHT_PX);
     srand((unsigned)ria_attr_get(RIA_ATTR_LRAND));
-    scores_load();
 
     for (;;)
     {
         scene_draw(SCENE_PRAIRIE, false);
         show_title();
-        switch (ui_ask_int("Choose: ", 1, 3))
+        switch (ui_ask_int(msg_get(148), 1, 3))
         {
         case 1:
         {

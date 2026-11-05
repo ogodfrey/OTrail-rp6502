@@ -154,7 +154,7 @@ and with deep snow.
 | Snake River          | River | Fort Boise, 114 miles                        |
 | Fort Boise           | Fort  | Blue Mountains, 160 miles                    |
 | Blue Mountains       | Site  | Fort Walla Walla, 55 miles, or The Dalles, 125 miles      |
-| Blue Mountains      | Site  | Fort Walla Walla (55) or The Dalles (125)    |
+| Blue Mountains       | Site  | Fort Walla Walla (55) or The Dalles (125)                  |
 | Fort Walla Walla     | Fort  | The Dalles, 120 miles                        |
 | The Dalles           | Site  | Columbia raft or Barlow Road, 100 miles      |
 
@@ -177,9 +177,11 @@ health, supplies, and the next landmark, then choose:
 6. **Attempt to trade**: one day, whatever the outcome.
 7. **Hunt for food**: on the trail only, one day.
 8. **Buy supplies**: at a fort. Matt's store is only at Independence.
-9. **Talk to people**: at a landmark only. Each visit hears the next of three
+9. **Look at the map**: lists the 18 landmarks, marks the ones you've reached,
+   and shows the current position and miles traveled.
+10. **Talk to people**: at a landmark only. Each visit hears the next of three
    speakers for that landmark.
-10. **Give up the journey**: ends the game with no score.
+11. **Give up the journey**: ends the game with no score.
 
 Continue is refused while a broken wagon part has no spare, or while you have no
 oxen.
@@ -254,6 +256,14 @@ At The Dalles you choose:
 * **Take the Barlow Toll Road.** The toll is $5 plus $0.50 for each ox. You
   need enough cash, and the last 100 miles take 12 miles a day.
 
+### Graves
+
+When the whole party dies, the leader's name and an epitaph of up to 29
+characters go into `oregon.grv`, with the leg and the miles left on that leg.
+When a later party travels the same leg and passes a grave, the game asks
+whether to look closer. Looking shows the name and epitaph. Graves are read
+from the file when each leg starts.
+
 ### Hunting
 
 Hunting costs one day and bullets. Each shot can kill an animal, and the
@@ -293,9 +303,6 @@ These parts of the Apple II game are missing or simplified here:
   hit. That chance is my assumption, not a value from the spec.
 * **The Columbia raft** is three random hazards with the spec's losses. It is
   not the arcade game with its arrow-key steering.
-* **The trail map** is not implemented.
-* **Trailside gravesites and tombstones** are not implemented.
-* **Epitaphs** are not implemented.
 * **Scene graphics** are simple drawings, and they don't match the Apple II
   pictures.
 * **Music and sound** are not implemented.
@@ -324,6 +331,8 @@ console runs in VGA mode 0 below it, with 80 columns and 22 rows.
 | `src/scene.c`, `scene.h`  | Draws the scenes and the wagon into the XRAM bitmap.                         |
 | `src/talk.c`, `talk.h`    | Talk to people: reads the talk asset and wraps each quote.                   |
 | `src/talk.txt`            | The talk asset: landmark, speaker, and quote on each line.                   |
+| `src/msg.c`, `msg.h`      | Looks up a game message in the msg asset by its number.                      |
+| `src/messages.dat`        | The msg asset: 80-byte records, one message each. Built from the game source.|
 | `src/ui.c`, `ui.h`        | Console helpers: line input, numbered prompts, pauses, and money formatting. |
 | `src/xram.h`              | The XRAM memory map: the scene config and bitmap, and the VGA macros.        |
 | `src/help.txt`            | The help text stored in the ROM as the `help` asset.                         |

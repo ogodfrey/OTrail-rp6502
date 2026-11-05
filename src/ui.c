@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include "ui.h"
+#include "msg.h"
 
 void ui_clear(void)
 {
-    printf("\f");
+    printf(msg_get(149));
 }
 
 /* End of input ends the program, so piped test runs stop cleanly. */
@@ -43,5 +44,5 @@ void ui_pause(void)
 
 void ui_print_money(long cents)
 {
-    printf("$%ld.%02ld", cents / 100, cents % 100);
+    printf(msg_get(151), cents / 100, cents % 100);
 }
