@@ -183,9 +183,10 @@ health, supplies, and the next landmark, then choose:
 1. **Continue on the trail**: travel up to seven days, or until a landmark or a
    problem stops you.
 2. **Check supplies**
-3. **Change pace**: Steady, Strenuous, or Grueling.
+3. **Change pace**: Steady, Strenuous, or Grueling. The screen explains what each
+   one does to distance and wear before you choose.
 4. **Change food rations**: Filling (3 pounds a person a day), Meager (2), or
-   Bare-bones (1).
+   Bare-bones (1). The screen explains the health cost of each before you choose.
 5. **Stop to rest**: 0 to 9 days.
 6. **Attempt to trade**: one day, whatever the outcome.
 7. **Hunt for food**: on the trail only, one day.

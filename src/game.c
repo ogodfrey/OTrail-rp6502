@@ -1170,9 +1170,18 @@ static void do_hunt(game_t *g)
     rest_days(g, 1);
 }
 
+static void print_help(int first, int count)
+{
+    int i;
+
+    for (i = 0; i < count; i++)
+        printf(msg_get(first + i));
+}
+
 static void change_pace(game_t *g)
 {
     ui_clear();
+    print_help(152, 4);
     printf(msg_get(75));
     g->pace = ui_ask_int(msg_get(76), 1, 3) - 1;
 }
@@ -1180,6 +1189,7 @@ static void change_pace(game_t *g)
 static void change_rations(game_t *g)
 {
     ui_clear();
+    print_help(156, 4);
     printf(msg_get(77));
     g->rations = ui_ask_int(msg_get(78), 1, 3) - 1;
 }
