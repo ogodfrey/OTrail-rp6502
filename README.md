@@ -27,6 +27,13 @@ granted to this project. Any reuse of that content needs its own permission.
 
 Some parts are approximations, listed under [Known differences](#known-differences).
 
+The talk-to-people quotes are paraphrases of the landmark dialogue in
+OpenTrail's `legacy/extracted/` text databases (`OREGON1.SEQ` and `OREGON2.SEQ`).
+The project owner states that they hold the rights to that material. The
+paraphrases keep each speaker's point of view and the landmark, but the words
+and speaker names are new, and the quotes are stored as the `talk` asset in
+`src/talk.txt`. The original text is not in this repository.
+
 ## Requirements
 
 * [CMake](https://cmake.org/) 3.28 or newer
@@ -51,9 +58,10 @@ cmake --build --preset llvm-mos/Debug
 The ROM is written to `build/llvm-mos/debug/oregon/oregon.rp6502`. The
 `llvm-mos/Release` preset builds `build/llvm-mos/release/oregon/oregon.rp6502`.
 
-Both presets compile with `-Os`. The unoptimized build does not fit the 6502's
-RAM, so do not remove that flag. The Debug preset keeps line information with
-`-g1`, which the emulator uses for source-level debugging.
+Both presets compile with `-Oz`. The ROM fills most of the 6502's RAM, and the
+other optimization levels do not fit. Do not change that flag. The Debug preset
+keeps line information with `-g1`, which the emulator uses for source-level
+debugging.
 
 ## Running
 
@@ -145,8 +153,8 @@ and with deep snow.
 | Fort Hall            | Fort  | Snake River, 182 miles                       |
 | Snake River          | River | Fort Boise, 114 miles                        |
 | Fort Boise           | Fort  | Blue Mountains, 160 miles                    |
-| Blue Mountains       | Site  | Fort Walla Walla, 55 miles, or The Dalles, 125 miles |
-| Blue Mountains       | Site  | Fort Walla Walla (55) or The Dalles (125)            |
+| Blue Mountains       | Site  | Fort Walla Walla, 55 miles, or The Dalles, 125 miles      |
+| Blue Mountains      | Site  | Fort Walla Walla (55) or The Dalles (125)    |
 | Fort Walla Walla     | Fort  | The Dalles, 120 miles                        |
 | The Dalles           | Site  | Columbia raft or Barlow Road, 100 miles      |
 
@@ -169,7 +177,9 @@ health, supplies, and the next landmark, then choose:
 6. **Attempt to trade**: one day, whatever the outcome.
 7. **Hunt for food**: on the trail only, one day.
 8. **Buy supplies**: at a fort. Matt's store is only at Independence.
-9. **Give up the journey**: ends the game with no score.
+9. **Talk to people**: at a landmark only. Each visit hears the next of three
+   speakers for that landmark.
+10. **Give up the journey**: ends the game with no score.
 
 Continue is refused while a broken wagon part has no spare, or while you have no
 oxen.
@@ -283,8 +293,6 @@ These parts of the Apple II game are missing or simplified here:
   hit. That chance is my assumption, not a value from the spec.
 * **The Columbia raft** is three random hazards with the spec's losses. It is
   not the arcade game with its arrow-key steering.
-* **Talk to people** is not implemented. The original's named speakers and
-  quotes are MECC's text.
 * **The trail map** is not implemented.
 * **Trailside gravesites and tombstones** are not implemented.
 * **Epitaphs** are not implemented.
@@ -314,6 +322,8 @@ console runs in VGA mode 0 below it, with 80 columns and 22 rows.
 | `src/main.c`              | Video setup, title screen, and the top 10 file.                              |
 | `src/game.c`, `game.h`    | Rules: party, supplies, weather, health, events, rivers, trade, and scoring. |
 | `src/scene.c`, `scene.h`  | Draws the scenes and the wagon into the XRAM bitmap.                         |
+| `src/talk.c`, `talk.h`    | Talk to people: reads the talk asset and wraps each quote.                   |
+| `src/talk.txt`            | The talk asset: landmark, speaker, and quote on each line.                   |
 | `src/ui.c`, `ui.h`        | Console helpers: line input, numbered prompts, pauses, and money formatting. |
 | `src/xram.h`              | The XRAM memory map: the scene config and bitmap, and the VGA macros.        |
 | `src/help.txt`            | The help text stored in the ROM as the `help` asset.                         |

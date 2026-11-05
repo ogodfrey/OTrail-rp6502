@@ -21,7 +21,7 @@
             "binaryDir": "${sourceDir}/build/llvm-mos/debug",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_C_FLAGS_DEBUG": "-g1 -Os",
+                "CMAKE_C_FLAGS_DEBUG": "-g1 -Oz",
                 "LLVM_MOS_PLATFORM": "rp6502"
             }
         },
@@ -33,7 +33,7 @@
             "binaryDir": "${sourceDir}/build/llvm-mos/release",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_C_FLAGS_RELEASE": "-Os -DNDEBUG",
+                "CMAKE_C_FLAGS_RELEASE": "-Oz -DNDEBUG",
                 "LLVM_MOS_PLATFORM": "rp6502"
             }
         }

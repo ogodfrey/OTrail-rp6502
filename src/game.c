@@ -5,6 +5,7 @@
 #include <string.h>
 #include "game.h"
 #include "scene.h"
+#include "talk.h"
 #include "ui.h"
 
 #define PARTY_SIZE 5
@@ -42,6 +43,7 @@ typedef enum {
     ACT_TRADE,
     ACT_HUNT,
     ACT_BUY,
+    ACT_TALK,
     ACT_QUIT
 } action_t;
 
@@ -110,6 +112,7 @@ typedef struct {
     bool crossing;
     bool said;
     bool won;
+    int talk_turn;
 } game_t;
 
 /* Index 0 is Independence. A landmark's leg is the one it departs on. */
@@ -193,7 +196,7 @@ static const char *const item_plural[ITEM_COUNT] = {
 static const char *const item_singular[ITEM_COUNT] = {
     "ox", "set of clothing", "bullet", "wagon wheel", "wagon axle", "wagon tongue", "pound of food"};
 
-static const char *const action_label[9] = {
+static const char *const action_label[10] = {
     "Continue on the trail",
     "Check supplies",
     "Change pace",
@@ -202,6 +205,7 @@ static const char *const action_label[9] = {
     "Attempt to trade",
     "Hunt for food",
     "Buy supplies",
+    "Talk to people",
     "Give up the journey",
 };
 
@@ -1107,7 +1111,7 @@ static bool confirm_quit(void)
 static bool action_menu(game_t *g, bool at_landmark)
 {
     for (;;) {
-        action_t acts[9];
+        action_t acts[10];
         int n = 0, c, i;
         bool store = landmarks[g->lm].type == LM_STORE;
 
@@ -1127,6 +1131,8 @@ static bool action_menu(game_t *g, bool at_landmark)
             acts[n++] = ACT_HUNT;
         if (store)
             acts[n++] = ACT_BUY;
+        if (at_landmark && g->lm < TALK_LANDMARKS)
+            acts[n++] = ACT_TALK;
         acts[n++] = ACT_QUIT;
         for (i = 0; i < n; i++)
             printf("%d) %s\n", i + 1, action_label[acts[i]]);
@@ -1168,6 +1174,10 @@ static bool action_menu(game_t *g, bool at_landmark)
                 matts_store(g);
             else
                 fort_store(g);
+            break;
+        case ACT_TALK:
+            talk_to_people(g->lm, &g->talk_turn);
+            g->said = true;
             break;
         case ACT_QUIT:
             if (confirm_quit())
