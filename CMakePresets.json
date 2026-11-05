@@ -1,0 +1,55 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 21,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "llvm-mos/Debug",
+            "displayName": "llvm-mos/Debug",
+            "description": "llvm-mos, with debug information",
+            "inherits": "base",
+            "binaryDir": "${sourceDir}/build/llvm-mos/debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_C_FLAGS_DEBUG": "-g1 -Os",
+                "LLVM_MOS_PLATFORM": "rp6502"
+            }
+        },
+        {
+            "name": "llvm-mos/Release",
+            "displayName": "llvm-mos/Release",
+            "description": "llvm-mos, optimized",
+            "inherits": "base",
+            "binaryDir": "${sourceDir}/build/llvm-mos/release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_C_FLAGS_RELEASE": "-Os -DNDEBUG",
+                "LLVM_MOS_PLATFORM": "rp6502"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "llvm-mos/Debug",
+            "displayName": "llvm-mos/Debug",
+            "configurePreset": "llvm-mos/Debug",
+            "targets": ["all"]
+        },
+        {
+            "name": "llvm-mos/Release",
+            "displayName": "llvm-mos/Release",
+            "configurePreset": "llvm-mos/Release",
+            "targets": ["all"]
+        }
+    ]
+}
