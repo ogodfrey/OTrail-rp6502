@@ -137,26 +137,25 @@ a day after it. The pace multiplies it: Steady is 1, Strenuous 1.5, and Grueling
 2. Speed falls with fewer than four oxen, with each sick or injured party member,
 and with deep snow.
 
-| Landmark             | Type  | Next stop and leg length                     |
-| -------------------- | ----- | -------------------------------------------- |
-| Independence         | Store | Kansas River, 102 miles                      |
-| Kansas River         | River | Big Blue River, 83 miles                     |
-| Big Blue River       | River | Fort Kearney, 119 miles                      |
-| Fort Kearney         | Fort  | Chimney Rock, 250 miles                      |
-| Chimney Rock         | Site  | Fort Laramie, 86 miles                       |
-| Fort Laramie         | Fort  | Independence Rock, 190 miles                 |
-| Independence Rock    | Site  | South Pass, 102 miles                        |
-| South Pass           | Site  | Green River, 57 miles, or Fort Bridger, 125  |
-| Fort Bridger         | Fort  | Soda Springs, 162 miles                      |
-| Green River          | River | Soda Springs, 144 miles                      |
-| Soda Springs         | Site  | Fort Hall, 57 miles                          |
-| Fort Hall            | Fort  | Snake River, 182 miles                       |
-| Snake River          | River | Fort Boise, 114 miles                        |
-| Fort Boise           | Fort  | Blue Mountains, 160 miles                    |
-| Blue Mountains       | Site  | Fort Walla Walla, 55 miles, or The Dalles, 125 miles      |
-| Blue Mountains       | Site  | Fort Walla Walla (55) or The Dalles (125)                  |
-| Fort Walla Walla     | Fort  | The Dalles, 120 miles                        |
-| The Dalles           | Site  | Columbia raft or Barlow Road, 100 miles      |
+| Landmark          | Type  | Next stop and leg length                             |
+| ----------------- | ----- | ---------------------------------------------------- |
+| Independence      | Store | Kansas River, 102 miles                              |
+| Kansas River      | River | Big Blue River, 83 miles                             |
+| Big Blue River    | River | Fort Kearney, 119 miles                              |
+| Fort Kearney      | Fort  | Chimney Rock, 250 miles                              |
+| Chimney Rock      | Site  | Fort Laramie, 86 miles                               |
+| Fort Laramie      | Fort  | Independence Rock, 190 miles                         |
+| Independence Rock | Site  | South Pass, 102 miles                                |
+| South Pass        | Site  | Green River, 57 miles, or Fort Bridger, 125 miles    |
+| Fort Bridger      | Fort  | Soda Springs, 162 miles                              |
+| Green River       | River | Soda Springs, 144 miles                              |
+| Soda Springs      | Site  | Fort Hall, 57 miles                                  |
+| Fort Hall         | Fort  | Snake River, 182 miles                               |
+| Snake River       | River | Fort Boise, 114 miles                                |
+| Fort Boise        | Fort  | Blue Mountains, 160 miles                            |
+| Blue Mountains    | Site  | Fort Walla Walla, 55 miles, or The Dalles, 125 miles |
+| Fort Walla Walla  | Fort  | The Dalles, 120 miles                                |
+| The Dalles        | Site  | Columbia raft or Barlow Road, 100 miles              |
 
 The default route through Green River and Fort Hall totals 1771 miles to The
 Dalles, plus the Barlow Road's 100 miles to the Willamette Valley. South Pass
