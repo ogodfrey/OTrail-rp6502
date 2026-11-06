@@ -122,11 +122,14 @@ def peak(d, ax, ay, half, base):
 
 
 def pine(d, x, base, h):
-    w = h * 0.32
-    d.polygon([(x, base - h), (x - w, base - h * 0.45), (x + w, base - h * 0.45)], fill=GRASS_DARK)
-    d.polygon([(x, base - h * 0.7), (x - w * 1.2, base - h * 0.15), (x + w * 1.2, base - h * 0.15)],
-              fill=GRASS_DARK)
-    d.rectangle([x - 1, base - h * 0.15, x + 1, base], fill=WOOD)
+    """A pine of three tiers, each lit on its left side."""
+    for top, bottom, half in ((0.0, 0.45, 0.28), (0.28, 0.7, 0.36), (0.5, 0.9, 0.44)):
+        y0 = base - h + h * top
+        y1 = base - h + h * bottom
+        w = h * half
+        d.polygon([(x, y0), (x - w, y1), (x + w, y1)], fill=GRASS_DARK)
+        d.polygon([(x, y0), (x - w, y1), (x, y1)], fill=GRASS)
+    d.rectangle([x - 1, base - h * 0.1, x + 1, base], fill=WOOD)
 
 
 def river(d, rng):
@@ -169,7 +172,7 @@ def wagon(d, cx, gy):
             ey = wy + (r - 2) * math.sin(math.radians(angle))
             d.line([(wx, wy), (ex, ey)], fill=DIRT)
         d.ellipse([wx - 3, wy - 3, wx + 3, wy + 3], fill=INK)
-    d.line([(cx - 42, gy - 30), (cx - 78, gy - 36)], fill=WOOD, width=4)
+    d.line([(cx - 42, gy - 30), (cx - 76, gy - 56)], fill=WOOD, width=4)
     d.rectangle([cx - 42, gy - 36, cx + 38, gy - 26], fill=WOOD, outline=INK)
     d.rounded_rectangle([cx - 44, gy - 74, cx + 40, gy - 34], radius=16, fill=WHITE, outline=INK, width=2)
     d.rectangle([cx - 40, gy - 46, cx + 36, gy - 36], fill=ROCK_LIGHT)
@@ -179,28 +182,32 @@ def wagon(d, cx, gy):
     d.rectangle([cx - 40, gy - 27, cx + 36, gy - 25], fill=INK)
 
 
-def ox(d, x, gy, body=DIRT, legs=WOOD):
-    """An ox facing left, with x at the middle of its body. The head is lowered to pull."""
-    for lx in (x - 16, x - 7, x + 14, x + 23):
-        d.rectangle([lx - 4, gy - 14, lx + 3, gy - 3], fill=legs)
-        d.rectangle([lx - 4, gy - 3, lx + 3, gy], fill=INK)
-    d.polygon([
-        (x + 30, gy - 30), (x + 16, gy - 34), (x, gy - 42), (x - 12, gy - 40),
-        (x - 18, gy - 26), (x - 6, gy - 16), (x + 12, gy - 14), (x + 28, gy - 17),
-    ], fill=body, outline=INK)
-    d.polygon([
-        (x - 14, gy - 40), (x - 22, gy - 38), (x - 32, gy - 30), (x - 36, gy - 22),
-        (x - 32, gy - 15), (x - 22, gy - 15), (x - 18, gy - 24), (x - 10, gy - 28),
-    ], fill=body, outline=INK)
-    d.line([(x - 20, gy - 38), (x - 26, gy - 48), (x - 30, gy - 46)], fill=WHITE, width=2)
-    d.point((x - 27, gy - 28), fill=INK)
-    d.line([(x + 29, gy - 28), (x + 34, gy - 18)], fill=INK)
+def ox(d, x, gy, body=DIRT, legs=WOOD, s=1.5):
+    """An ox facing left. x is the middle of its body, gy its feet, and s the scale."""
+    def at(dx, dy):
+        return (x + dx * s, gy + dy * s)
+
+    for lx in (-16, -7, 14, 23):
+        d.rectangle([at(lx - 4, -14), at(lx + 3, -3)], fill=legs)
+        d.rectangle([at(lx - 4, -3), at(lx + 3, 0)], fill=INK)
+    d.polygon([at(*p) for p in [
+        (30, -30), (16, -34), (0, -42), (-12, -40),
+        (-18, -26), (-6, -16), (12, -14), (28, -17),
+    ]], fill=body, outline=INK)
+    d.polygon([at(*p) for p in [
+        (-14, -40), (-22, -38), (-32, -30), (-36, -22),
+        (-32, -15), (-22, -15), (-18, -24), (-10, -28),
+    ]], fill=body, outline=INK)
+    d.line([at(-20, -38), at(-26, -48), at(-30, -46)], fill=WHITE, width=2)
+    d.point(at(-27, -28), fill=INK)
+    d.line([at(29, -28), at(34, -18)], fill=INK)
 
 
 def oxen(d, cx, gy):
-    """A yoke of oxen. The far ox is darker and a little behind the near one."""
-    ox(d, cx - 98, gy - 4, body=WOOD, legs=INK)
-    ox(d, cx - 72, gy)
+    """A yoke of oxen. The far ox is darker, higher, and a little behind the near one."""
+    ox(d, cx - 104, gy - 8, body=WOOD, legs=INK)
+    ox(d, cx - 66, gy)
+    d.line([(cx - 76, gy - 63), (cx - 119, gy - 71)], fill=WOOD, width=4)
 
 
 def draw_prairie(img, rng):
@@ -213,6 +220,8 @@ def draw_prairie(img, rng):
     bird(d, 214, 20)
     far_hills(d, HZ, 14, 0.0)
     ground(d, rng)
+    for x, h in ((512, 26), (546, 30), (588, 24)):
+        pine(d, x, HZ + 8, h)
     trail(d)
     oxen(d, 330, 118)
     wagon(d, 330, 118)
@@ -228,7 +237,7 @@ def draw_mountain(img, rng):
     peak(d, 470, 22, 130, HZ + 2)
     ground(d, rng)
     for x in (30, 60, 96, 540, 580, 612):
-        pine(d, x, HZ + 6, 22 + rng.randrange(8))
+        pine(d, x, HZ + 6, 30 + rng.randrange(8))
     trail(d)
     oxen(d, 330, 118)
     wagon(d, 330, 118)
