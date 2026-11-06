@@ -181,7 +181,9 @@ The trail runs in weeks. At the start of each week you see the date, weather,
 health, supplies, and the next landmark, then choose:
 
 1. **Continue on the trail**: travel up to seven days, or until a landmark or a
-   problem stops you.
+   problem stops you. Each day after the first shows the status screen and asks
+   `Enter to keep traveling, M for the menu`. Press Enter to go on, or type M and
+   Enter to open the menu in the middle of the week.
 2. **Check supplies**
 3. **Change pace**: Steady, Strenuous, or Grueling. The screen explains what each
    one does to distance and wear before you choose.
@@ -324,6 +326,8 @@ These parts of the Apple II game are missing or simplified here:
 * **Give up the journey** is an addition. The Apple II ends only by arrival or
   death.
 * **The Top Ten** starts empty. The original's list is not included.
+* **Travel input** is a line, not a keypress. Each day waits for Enter, so you
+  type M and Enter to open the menu.
 
 The spec's values have not been checked against the Apple II by playing it.
 Under the spec's river formulas, a Kansas River ford in March can be very deadly,

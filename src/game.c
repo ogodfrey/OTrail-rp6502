@@ -230,6 +230,7 @@ static const char *const action_label[11] = {
 
 static void rest_days(game_t *g, int n);
 static void day_tick(game_t *g, bool travel);
+static void draw_status(game_t *g);
 static void illness(game_t *g);
 
 static float rndf(void)
@@ -904,13 +905,23 @@ static void travel_week(game_t *g)
     int d;
 
     g->said = false;
-    for (d = 0; d < WEEK_DAYS && g->dist > 0.0f && g->np > 0 && !blocked(g); d++)
+    for (d = 0; d < WEEK_DAYS && g->dist > 0.0f && g->np > 0 && !blocked(g); d++) {
+        char line[8];
+
         day_tick(g, true);
-    if (g->said && g->np > 0)
-        ui_pause();
+        if (g->said && g->np > 0)
+            ui_pause();
+        g->said = false;
+        if (d == WEEK_DAYS - 1 || g->dist <= 0.0f || g->np == 0 || blocked(g))
+            break;
+        draw_status(g);
+        printf(msg_get(160));
+        ui_read_line(line, sizeof(line));
+        if (line[0] == 'm' || line[0] == 'M')
+            break;
+    }
     g->said = false;
 }
-
 static scene_t scene_for(const game_t *g)
 {
     int type = landmarks[g->lm].type;

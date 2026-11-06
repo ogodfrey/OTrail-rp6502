@@ -29,8 +29,8 @@ HOST = os.path.join(tempfile.gettempdir(), "oregon-rp6502-host")
 EXE = os.path.join(HOST, "oregon.exe")
 ANSWERS = os.path.join(ROOT, "tests", "playthrough.txt")
 GCC = r"C:\msys64\ucrt64\bin\gcc.exe" if os.path.exists(r"C:\msys64\ucrt64\bin\gcc.exe") else "gcc"
-MAX_SCREENS = 1500
-MAX_PROMPTS = 5000
+MAX_SCREENS = 4000
+MAX_PROMPTS = 9000
 QUIET_SECONDS = 0.05
 TIMEOUT_SECONDS = 60
 MATTS = [("1", "4"), ("2", "600"), ("3", "5"), ("4", "5"), ("5", "1"), ("6", "1"), ("7", "1")]
@@ -148,6 +148,8 @@ def policy(text):
     weeks = text.count("Miles: ")
 
     if tail.endswith("Press Enter to continue."):
+        return ""
+    if tail.endswith("M for the menu: "):
         return ""
     if tail.endswith("Name of the party leader: "):
         return "Alice"
