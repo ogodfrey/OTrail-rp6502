@@ -42,15 +42,14 @@ paraphrases keep each speaker's point of view and the landmark, but the words
 and speaker names are new, and the quotes are stored as the `talk` asset in
 `src/talk.txt`. The original text is not in this repository.
 
-The prairie, river crossing, fort, and mountain scenes (`assets/prairie.png`,
-`assets/river.png`, `assets/fort.png`, and `assets/mountain.png`) were generated
-with Google AI (Gemini and Nano Banana 2) and then converted to the game's
-16-color palette. Google's Gemini API terms say Google does not claim
-ownership of generated content, and that the user is responsible for how it is
-used. Those terms depend on the Google product used, and some jurisdictions do
-not give copyright protection to purely AI-generated images, so reuse of these
-images may not be restricted by copyright. The store picture is drawn in code by
-`assets/make_scenes.py`.
+The prairie, river crossing, fort, mountain, and store scenes (`assets/prairie.png`,
+`assets/river.png`, `assets/fort.png`, `assets/mountain.png`, and
+`assets/store.png`) were generated with Google AI (Gemini and Nano Banana 2) and
+then converted to the game's 16-color palette. Google's Gemini API terms say
+Google does not claim ownership of generated content, and that the user is
+responsible for how it is used. Those terms depend on the Google product used,
+and some jurisdictions do not give copyright protection to purely AI-generated
+images, so reuse of these images may not be restricted by copyright.
 
 ## Requirements
 
@@ -165,9 +164,9 @@ the test doesn't touch the repo.
 
 Quantities are set, not added: choosing an item again replaces its quantity.
 
-The store screens show a picture above the text: a plank wall with the seven
-items on a shelf, in the same order as the list (oxen, food, clothing, ammo,
-wheel, axle, tongue). The forts use the same picture and item order.
+The store screens show a picture above the text: a row of seven framed items
+(oxen, food, clothing, ammo, wheel, axle, tongue), in the same order as the list.
+The forts use the same picture and item order.
 
 ### Forts
 
@@ -373,10 +372,10 @@ The canvas is 640x480. The top 128 scanlines show the scene, a 4-bit VGA mode 3
 bitmap, and the console runs in VGA mode 0 below it, with 80 columns and 22 rows.
 
 There are five scenes: the prairie, the mountains, a river crossing, a fort, and
-the store. Each is a 640x128 picture in a 16-color palette. The prairie, river,
-fort, and mountain scenes are paintings converted to the game palette, kept in
-`assets/`. The store is drawn by `assets/make_scenes.py`. The travel scenes have
-the wagon and its oxen in front, and the store has its shelf of items.
+the store. Each is a 640x128 picture in a 16-color palette. All five are
+paintings converted to the game palette, kept in `assets/`, and
+`assets/make_scenes.py` packs them into `src/scenes.dat`. The travel scenes have
+the wagon and its oxen in front, and the store has its row of items.
 The winter scenes use the same pictures with a second palette, which turns the
 sky and the ground white and blue. The pictures are stored in `src/scenes.dat`
 as run-length pixels, and the palettes are in the same file.
