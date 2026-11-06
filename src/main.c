@@ -112,7 +112,7 @@ int main(void)
         .width_px = SCENE_WIDTH_PX,
         .height_px = SCENE_HEIGHT_PX,
         .xram_data_ptr = XRAM_SCENE,
-        .xram_palette_ptr = 0xFFFF,
+        .xram_palette_ptr = XRAM_SCENE_PALETTE,
     };
 
     xreg_vga_canvas(CANVAS_640X480);

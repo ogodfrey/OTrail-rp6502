@@ -53,10 +53,12 @@ typedef struct
 typedef struct
 {
     mode3_config_t scene_config;
+    uint16_t scene_palette[16];
     uint8_t scene[SCENE_ROW_BYTES * SCENE_HEIGHT_PX];
 } xram_layout_t;
 
 #define XRAM_SCENE_CONFIG offsetof(xram_layout_t, scene_config)
+#define XRAM_SCENE_PALETTE offsetof(xram_layout_t, scene_palette)
 #define XRAM_SCENE offsetof(xram_layout_t, scene)
 
 #endif

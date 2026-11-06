@@ -46,6 +46,8 @@ and speaker names are new, and the quotes are stored as the `talk` asset in
 
 * [CMake](https://cmake.org/) 3.28 or newer
 * Python 3
+* Optional: [Pillow](https://pypi.org/project/pillow/), only to redraw the scenes
+  with `assets/make_scenes.py`.
 * Ninja or Make
 * [llvm-mos](https://github.com/picocomputer?view_as=public), the 6502 C
   compiler. The SDK installs it into `~/.rp6502/llvm-mos`.
@@ -107,6 +109,15 @@ are saved to `tests/playthrough.txt`.
 ```bash
 python tests/playthrough.py            # play a new game and save the answers
 python tests/playthrough.py --replay   # feed the saved answers back; fails if the game does not exit cleanly
+```
+
+`tests/render_scenes.py` checks the scene code. It builds `src/scene.c` on the
+host with a 64 KB XRAM stub, decodes each scene in both palettes, and fails if
+the pixels or the palette differ from what `assets/make_scenes.py` drew. It
+writes the decoded pictures to `build/scenes/`.
+
+```bash
+python tests/render_scenes.py
 ```
 
 The host build writes its score and grave files to the system temp folder, so
@@ -327,8 +338,8 @@ These parts of the Apple II game are missing or simplified here:
   hit. That chance is my assumption, not a value from the spec.
 * **The Columbia raft** is three random hazards with the spec's losses. It is
   not the arcade game with its arrow-key steering.
-* **Scene graphics** are simple drawings, and they don't match the Apple II
-  pictures.
+* **Scene graphics** are hand-drawn pictures in 16 colors. They are not the
+  Apple II pictures.
 * **Music and sound** are not implemented.
 * **Native American encounters** are not implemented.
 * **Give up the journey** is an addition. The Apple II ends only by arrival or
@@ -345,8 +356,13 @@ are safer choices there.
 ## Screen layout
 
 The canvas is 640x480. The top 128 scanlines show the scene, a 4-bit VGA mode 3
-bitmap that changes with the terrain, the landmark, and the winter season. The
-console runs in VGA mode 0 below it, with 80 columns and 22 rows.
+bitmap, and the console runs in VGA mode 0 below it, with 80 columns and 22 rows.
+
+There are four scenes: the prairie, the mountains, a river crossing, and a fort.
+Each is a 640x128 picture in a 16-color palette, with the wagon and its oxen in
+front. The winter scenes use the same pictures with a second palette, which
+turns the sky and the ground white and blue. The pictures are stored in
+`src/scenes.dat` as run-length pixels, and the palettes are in the same file.
 
 ## Source layout
 
@@ -354,17 +370,20 @@ console runs in VGA mode 0 below it, with 80 columns and 22 rows.
 | ------------------------- | ---------------------------------------------------------------------------- |
 | `src/main.c`              | Video setup, title screen, and the top 10 file.                              |
 | `src/game.c`, `game.h`    | Rules: party, supplies, weather, health, events, rivers, trade, and scoring. |
-| `src/scene.c`, `scene.h`  | Draws the scenes and the wagon into the XRAM bitmap.                         |
+| `src/scene.c`, `scene.h`  | Decodes a scene from the scenes asset into the XRAM bitmap and sets its palette. |
 | `src/talk.c`, `talk.h`    | Talk to people: reads the talk asset and wraps each quote.                   |
 | `src/talk.txt`            | The talk asset: landmark, speaker, and quote on each line.                   |
 | `src/msg.c`, `msg.h`      | Looks up a game message in the msg asset by its number.                      |
 | `src/messages.dat`        | The msg asset: 80-byte records, one message each. Built from the game source.|
 | `src/ui.c`, `ui.h`        | Console helpers: line input, numbered prompts, pauses, and money formatting. |
-| `src/xram.h`              | The XRAM memory map: the scene config and bitmap, and the VGA macros.        |
+| `src/xram.h`              | The XRAM memory map: the scene config, palette, and bitmap, and the VGA macros. |
 | `src/help.txt`            | The help text stored in the ROM as the `help` asset.                         |
+| `src/scenes.dat`          | The scenes asset: the four pictures and their summer and winter palettes.    |
+| `assets/make_scenes.py`   | Draws the scenes with Pillow and writes `src/scenes.dat`.                    |
 | `tests/playtest.py`       | The emulator smoke test.                                                     |
 | `tests/playthrough.py`    | The host playthrough: plays a full game and saves the answers.               |
 | `tests/playthrough.txt`   | The answers from the saved playthrough, used by `--replay`.                  |
+| `tests/render_scenes.py`  | The scene check: decodes the scenes on the host and compares them with the art. |
 | `tests/host/`             | The host shim: stubs for the RIA calls and the XRAM, so `src/` builds with gcc. |
 | `CMakeLists.txt`          | The `oregon` ROM target and its sources.                                     |
 | `CMakePresets.json`       | The llvm-mos Debug and Release presets.                                      |

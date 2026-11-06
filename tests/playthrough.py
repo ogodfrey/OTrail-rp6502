@@ -44,18 +44,21 @@ def build():
     for name in os.listdir(os.path.join(ROOT, "src")):
         if name.endswith((".c", ".h")):
             shutil.copy(os.path.join(ROOT, "src", name), src)
-    for name in ("msg.c", "talk.c"):
+    for name in ("msg.c", "talk.c", "scene.c"):
         path = os.path.join(src, name)
         with open(path, encoding="utf-8") as f:
             text = f.read()
         with open(path, "w", encoding="utf-8", newline="\n") as f:
-            f.write(text.replace("ROM:msg", "rom_msg").replace("ROM:talk", "rom_talk"))
+            f.write(text.replace("ROM:msg", "rom_msg").replace("ROM:talk", "rom_talk")
+                    .replace("ROM:scenes", "rom_scenes"))
     shutil.copy(os.path.join(ROOT, "src", "messages.dat"), os.path.join(HOST, "rom_msg"))
     shutil.copy(os.path.join(ROOT, "src", "talk.txt"), os.path.join(HOST, "rom_talk"))
+    shutil.copy(os.path.join(ROOT, "src", "scenes.dat"), os.path.join(HOST, "rom_scenes"))
     sources = [os.path.join(src, n) for n in ("game.c", "main.c", "scene.c", "talk.c", "ui.c", "msg.c")]
     tests = os.path.join(ROOT, "tests", "host")
     result = subprocess.run(
-        [GCC, "-std=gnu99", "-O1", "-w", "-include", os.path.join(tests, "unbuf.h"),
+        [GCC, "-std=gnu99", "-O1", "-w", "-include", os.path.join(tests, "binary.h"),
+         "-include", os.path.join(tests, "unbuf.h"),
          "-I", tests, "-I", src] + sources + [os.path.join(tests, "shim.c"), "-o", EXE],
         capture_output=True, text=True)
     if result.returncode:
