@@ -18,6 +18,7 @@ from PIL import Image, ImageDraw
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "src", "scenes.dat")
+PRAIRIE_ART = os.path.join(ROOT, "assets", "prairie.png")
 PREVIEW_DIR = os.path.join(ROOT, "build", "scenes")
 
 W = 640
@@ -64,12 +65,6 @@ def dither_row(d, y, keep, upper, lower):
         d.point((x, y), fill=upper if x % 4 < keep else lower)
 
 
-def sun(d, x, y, r):
-    d.ellipse([x - r - 8, y - r - 8, x + r + 8, y + r + 8], fill=SKY)
-    d.ellipse([x - r - 4, y - r - 4, x + r + 4, y + r + 4], fill=SKY_PALE)
-    d.ellipse([x - r, y - r, x + r, y + r], fill=SUN)
-
-
 def cloud(d, x, y, s):
     parts = [(-18, 0, 13, 8), (0, -6, 16, 11), (17, 0, 12, 8)]
     for dx, dy, rx, ry in parts:
@@ -78,10 +73,6 @@ def cloud(d, x, y, s):
     for dx, dy, rx, ry in parts:
         cx, cy = x + dx * s, y + dy * s
         d.ellipse([cx - rx * s, cy - ry * s, cx + rx * s, cy + ry * s], fill=WHITE)
-
-
-def bird(d, x, y):
-    d.line([(x - 4, y - 2), (x, y), (x + 4, y - 2)], fill=INK)
 
 
 def far_hills(d, base, amp, phase):
@@ -211,20 +202,8 @@ def oxen(d, cx, gy):
 
 
 def draw_prairie(img, rng):
-    d = ImageDraw.Draw(img)
-    sky(d)
-    sun(d, 560, 18, 9)
-    cloud(d, 120, 22, 1.0)
-    cloud(d, 300, 40, 0.7)
-    bird(d, 200, 14)
-    bird(d, 214, 20)
-    far_hills(d, HZ, 14, 0.0)
-    ground(d, rng)
-    for x, h in ((512, 26), (546, 30), (588, 24)):
-        pine(d, x, HZ + 8, h)
-    trail(d)
-    oxen(d, 330, 118)
-    wagon(d, 330, 118)
+    """The prairie is a painting already mapped to the game palette, in assets/prairie.png."""
+    img.paste(Image.open(PRAIRIE_ART))
 
 
 def draw_mountain(img, rng):
