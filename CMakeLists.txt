@@ -10,7 +10,10 @@ rp6502_asset(oregon help src/help.txt)
 rp6502_asset(oregon talk src/talk.txt)
 rp6502_asset(oregon msg src/messages.dat)
 rp6502_executable(oregon DATA default RESET default)
-rp6502_web(oregon)
+rp6502_web(oregon CONFIG [[
+    title: 'The Oregon Trail',
+    footer: 'The Picocomputer 6502 was created by <a href="https://picocomputer.github.io/index.html">Rumbledethumps</a>.',
+]])
 target_sources(oregon PRIVATE
     src/game.c
     src/main.c

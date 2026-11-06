@@ -8,6 +8,14 @@ This is a C version of The Oregon Trail for the
 compiler and the RP6502 SDK. Lead a party of five from Independence, Missouri,
 2040 miles to the Willamette Valley in Oregon.
 
+<!-- rp6502
+preset: llvm-mos/Release
+publish: oregon.zip
+-->
+[![Play The Oregon Trail in a web browser](https://ogodfrey.github.io/OTrail-rp6502/oregon/screenshot.png)](https://ogodfrey.github.io/OTrail-rp6502/oregon/)
+
+[Play in a web browser](https://ogodfrey.github.io/OTrail-rp6502/oregon/). No download is needed.
+
 The game follows the 1985 MECC version for the Apple II, first released by the
 Minnesota Educational Computing Consortium (MECC). This project is not
 affiliated with or endorsed by MECC.
