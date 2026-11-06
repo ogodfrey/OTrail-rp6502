@@ -45,7 +45,9 @@ and speaker names are new, and the quotes are stored as the `talk` asset in
 The prairie, river crossing, fort, mountain, and store scenes (`assets/prairie.png`,
 `assets/river.png`, `assets/fort.png`, `assets/mountain.png`, and
 `assets/store.png`) were generated with Google AI (Gemini and Nano Banana 2) and
-then converted to the game's 16-color palette. Google's Gemini API terms say
+then converted to the game's 16-color palette. The journey map (`assets/journey.png`)
+is from a journey dashboard image made with Google AI, with the painted wagon and
+its label removed. Google's Gemini API terms say
 Google does not claim ownership of generated content, and that the user is
 responsible for how it is used. Those terms depend on the Google product used,
 and some jurisdictions do not give copyright protection to purely AI-generated
@@ -209,8 +211,10 @@ and the Blue Mountains are route choices, and The Dalles is the last decision.
 
 ### Weeks and the menu
 
-The trail runs in weeks. At the start of each week you see the date, weather,
-health, supplies, and the next landmark, then choose:
+The trail runs in weeks. At the start of each week you see the journey map:
+the route from Independence to Willamette Valley, the landmarks, and a wagon
+marker at your position. Below it are the date, weather, health, supplies, and
+the next landmark. Then you choose:
 
 1. **Continue on the trail**: travel up to seven days, or until a landmark or a
    problem stops you. Each day after the first shows the status screen and asks
@@ -371,14 +375,18 @@ are safer choices there.
 The canvas is 640x480. The top 128 scanlines show the scene, a 4-bit VGA mode 3
 bitmap, and the console runs in VGA mode 0 below it, with 80 columns and 22 rows.
 
-There are five scenes: the prairie, the mountains, a river crossing, a fort, and
-the store. Each is a 640x128 picture in a 16-color palette. All five are
-paintings converted to the game palette, kept in `assets/`, and
-`assets/make_scenes.py` packs them into `src/scenes.dat`. The travel scenes have
-the wagon and its oxen in front, and the store has its row of items.
-The winter scenes use the same pictures with a second palette, which turns the
-sky and the ground white and blue. The pictures are stored in `src/scenes.dat`
-as run-length pixels, and the palettes are in the same file.
+There are six scenes: the prairie, the mountains, a river crossing, a fort, the
+store, and the journey map. Each is a 640x128 picture in a 16-color palette.
+The first five are paintings converted to the game palette, kept in `assets/`.
+The journey map is the dashboard mockup's map with its painted wagon and
+"T: 740 mi" label removed, and the wagon marker is drawn over it at run time.
+`assets/make_journey.py` makes the map art and the route, and
+`assets/make_scenes.py` packs the scenes and the route into `src/scenes.dat`.
+The travel scenes have the wagon and its oxen in front, and the store has its
+row of items. The winter scenes use the same pictures with a second palette,
+which turns the sky and the ground white and blue. The pictures are stored in
+`src/scenes.dat` as run-length pixels, and the palettes and the route are in the
+same file.
 
 ## Source layout
 
@@ -394,8 +402,9 @@ as run-length pixels, and the palettes are in the same file.
 | `src/ui.c`, `ui.h`        | Console helpers: line input, numbered prompts, pauses, and money formatting. |
 | `src/xram.h`              | XRAM map: scene config, palette, bitmap, and VGA macros.                     |
 | `src/help.txt`            | The help text stored in the ROM as the `help` asset.                         |
-| `src/scenes.dat`          | The scenes asset: the five pictures and their summer and winter palettes.    |
-| `assets/make_scenes.py`   | Draws the scenes with Pillow and writes `src/scenes.dat`.                    |
+| `src/scenes.dat`          | The scenes asset: the six pictures, both palettes, and the journey route.    |
+| `assets/make_scenes.py`   | Packs the scene pictures and the journey route into `src/scenes.dat`.        |
+| `assets/make_journey.py`  | Makes the journey map art and the route from the dashboard image.            |
 | `tests/playtest.py`       | The emulator smoke test.                                                     |
 | `tests/playthrough.py`    | The host playthrough: plays a full game and saves the answers.               |
 | `tests/playthrough.txt`   | The answers from the saved playthrough, used by `--replay`.                  |
@@ -406,7 +415,10 @@ as run-length pixels, and the palettes are in the same file.
 | `tools/`                  | The SDK scripts. `rp6502.cmake` fetches the emulator and tools.              |
 
 The constants for prices, mileages, climate, rivers, and event chances are at the
-top of `src/game.c`.
+top of `src/game.c`. The rules use fixed-point integers instead of floating
+point, since the 6502 has no floating-point hardware and the library is large.
+A fraction is stored as a whole number in thousandths, so 1.5 is 1500, and the
+`FP()` macro writes a constant that way at compile time.
 
 ## Updating the SDK tools
 

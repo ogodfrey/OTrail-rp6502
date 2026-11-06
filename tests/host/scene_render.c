@@ -12,10 +12,12 @@ int main(int argc, char **argv)
 {
     FILE *f;
 
-    if (argc != 4)
+    if (argc != 4 && argc != 5)
         return 2;
     memset(xram, 0, sizeof xram);
     scene_draw((scene_t)atoi(argv[1]), atoi(argv[2]) != 0);
+    if (argc == 5)
+        scene_journey_marker((unsigned)atoi(argv[4]));
     f = fopen(argv[3], "wb");
     if (!f)
         return 1;

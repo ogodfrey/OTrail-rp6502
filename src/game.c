@@ -13,8 +13,15 @@
 
 #define PARTY_SIZE 5
 #define NAME_MAX 9
-#define HEALTH_CAP 139.0f
-#define DEATH_HEALTH_CAP 105.0f
+/* Fractions are fixed-point: whole numbers in thousandths, so 1.5 is 1500.
+   FP() turns a literal into that form at compile time, so the 6502 needs no
+   floating-point library. FMUL and FDIV scale the results back. */
+#define FX 1000L
+#define FP(x) ((long)((x) * 1000.0 + 0.5))
+#define FMUL(a, b) (((long)(a) * (b)) / FX)
+#define FDIV(a, b) (((long)(a) * FX) / (b))
+#define HEALTH_CAP FP(139.0)
+#define DEATH_HEALTH_CAP FP(105.0)
 #define WEEK_DAYS 7
 #define LAST_LANDMARK 17
 #define DALLES 16
@@ -110,18 +117,18 @@ typedef struct {
     int year;
     int lm;
     int leg;
-    float dist;
-    float miles;
-    float health;
-    float fs;
-    float ar;
-    float as;
+    long dist;
+    long miles;
+    long health;
+    long fs;
+    long ar;
+    long as;
     int tm;
     int weather;
     bool precip;
-    float tr;
-    float ts;
-    float hr;
+    long tr;
+    long ts;
+    long hr;
     int broken;
     bool crossing;
     bool said;
@@ -233,12 +240,14 @@ static void day_tick(game_t *g, bool travel);
 static void draw_status(game_t *g);
 static void illness(game_t *g);
 
-static float rndf(void)
+static int rnd(int n);
+
+static long rndf(void)
 {
-    return (float)rand() / ((float)RAND_MAX + 1.0f);
+    return rnd(FX);
 }
 
-static bool chance(float p)
+static bool chance(long p)
 {
     return rndf() < p;
 }
@@ -258,9 +267,9 @@ static int imin(int a, int b)
     return a < b ? a : b;
 }
 
-static float round1(float x)
+static long round1(long x)
 {
-    return (float)((int)(x * 10.0f + 0.5f)) / 10.0f;
+    return (x + 50) / 100 * 100;
 }
 
 static void say(game_t *g, const char *text)
@@ -294,10 +303,10 @@ static int whole_oxen(const game_t *g)
     return g->ox2 / 2;
 }
 
-static const char *health_word(float h)
+static const char *health_word(long h)
 {
     static const char *const words[4] = {"Good", "Fair", "Poor", "Very poor"};
-    int band = (int)(h / 35.0f);
+    int band = (int)(h / (35 * FX));
     if (band < 0)
         band = 0;
     if (band > 3)
@@ -353,7 +362,7 @@ static void afflict(game_t *g, int i, int kind)
     say(g, buf);
 }
 
-static void drown(game_t *g, float p)
+static void drown(game_t *g, long p)
 {
     int i, lowest = g->np > 1 ? 1 : 0;
 
@@ -372,7 +381,7 @@ static void report_loss(game_t *g, bool *head, const char *heading, int n, const
     printf(msg_get(2), n, label);
 }
 
-static void lose_count(game_t *g, int *count, float p, const char *label, const char *heading, bool *head)
+static void lose_count(game_t *g, int *count, long p, const char *label, const char *heading, bool *head)
 {
     int n;
 
@@ -383,7 +392,7 @@ static void lose_count(game_t *g, int *count, float p, const char *label, const 
     report_loss(g, head, heading, n, label);
 }
 
-static bool lose_goods(game_t *g, float p, const char *heading)
+static bool lose_goods(game_t *g, long p, const char *heading)
 {
     bool head = false;
     int i;
@@ -396,7 +405,7 @@ static bool lose_goods(game_t *g, float p, const char *heading)
     return head;
 }
 
-static bool lose_oxen(game_t *g, float p, const char *heading)
+static bool lose_oxen(game_t *g, long p, const char *heading)
 {
     bool head = false;
     int k, n = 0;
@@ -468,14 +477,14 @@ static void member_afflict_random(game_t *g)
 {
     int i = member_pick(g);
 
-    afflict(g, i, chance(0.5f) ? 0 : 1);
+    afflict(g, i, chance(FP(0.5)) ? 0 : 1);
 }
 
 static void illness(game_t *g)
 {
     int i = member_pick(g);
 
-    g->hr = 20.0f;
+    g->hr = FP(20.0);
     if (g->party[i].affl >= 0) {
         member_die(g, i, "illness");
         return;
@@ -490,7 +499,7 @@ static void broken_wagon(game_t *g)
 
     sprintf(buf, "A wagon %s is broken.", part_name[p]);
     say(g, buf);
-    if (ui_ask_int(msg_get(3), 1, 2) == 1 && chance(0.5f))
+    if (ui_ask_int(msg_get(3), 1, 2) == 1 && chance(FP(0.5)))
         say(g, msg_get(4));
     else if (g->spares[p] > 0) {
         g->spares[p]--;
@@ -505,7 +514,7 @@ static void broken_wagon(game_t *g)
 static void fire(game_t *g)
 {
     say(g, msg_get(7));
-    lose_goods(g, 0.5f, "The fire destroyed:");
+    lose_goods(g, FP(0.5), "The fire destroyed:");
 }
 
 static void abandoned_wagon(game_t *g)
@@ -513,18 +522,18 @@ static void abandoned_wagon(game_t *g)
     bool found = false;
     int n, p;
 
-    if (chance(0.5f)) {
+    if (chance(FP(0.5))) {
         n = ranged(1, 3);
         g->clothing += n;
         found = true;
     }
-    if (chance(0.5f)) {
+    if (chance(FP(0.5))) {
         n = ranged(1, 3);
         g->bullets += 21 * n;
         found = true;
     }
     for (p = 0; p < PART_COUNT; p++) {
-        if (chance(0.5f)) {
+        if (chance(FP(0.5))) {
             n = ranged(1, 3);
             if (g->spares[p] + n <= PART_CAP) {
                 g->spares[p] += n;
@@ -595,7 +604,7 @@ static bool grave_next(int leg, int below, grave_t *out)
 
 static void grave_select(game_t *g)
 {
-    g->has_grave = grave_next(g->leg, (int)g->dist + 1, &g->grave);
+    g->has_grave = grave_next(g->leg, (int)(g->dist / FX) + 1, &g->grave);
 }
 
 static void grave_write(game_t *g)
@@ -605,7 +614,7 @@ static void grave_write(game_t *g)
 
     memset(&rec, 0, sizeof(rec));
     rec.leg = (uint8_t)g->leg;
-    rec.left = (int)g->dist;
+    rec.left = (int)(g->dist / FX);
     strcpy(rec.name, g->leader);
     printf(msg_get(12), EPITAPH_MAX);
     ui_read_line(rec.epitaph, EPITAPH_MAX + 1);
@@ -633,30 +642,30 @@ static void show_map(game_t *g)
         printf(msg_get(15), seen ? "[x]" : "[ ]", landmarks[i].name,
                i == g->lm ? "  <- you are here" : "");
     }
-    printf(msg_get(16), (int)g->miles);
-    printf(msg_get(17), landmarks[legs[g->leg].to].name, (int)(g->dist + 0.5f));
+    printf(msg_get(16), (int)(g->miles / FX));
+    printf(msg_get(17), landmarks[legs[g->leg].to].name, (int)((g->dist + FX / 2) / FX));
     ui_pause();
 }
 
-static float event_chance(const game_t *g, int k, int zone)
+static long event_chance(const game_t *g, int k, int zone)
 {
     switch (k) {
-    case 0: return g->as > 30.0f ? 1.0f : 0.0f;
-    case 1: return 0.007f;
-    case 3: return 0.01f + g->health / 1500.0f;
-    case 4: return g->has_grave && g->dist < g->grave.left ? 1.0f : 0.0f;
-    case 5: return g->food == 0 ? 0.05f : 0.0f;
-    case 6: return (g->weather > 7 ? 1.0f : 0.0f) + (g->tm < 2 ? 0.15f : 0.0f);
-    case 7: return 0.06f;
-    case 8: return 0.04f + (zone > 2 ? 0.03f : 0.0f);
-    case 9: return 0.02f;
-    case 10: return zone > 2 ? 0.05f : 0.0f;
-    case 11: return (g->month >= 4 && g->month <= 8) ? 0.04f : 0.0f;
-    case 12: return 0.01f;
-    case 13: return 0.02f;
-    case 14: return g->ar < 0.1f ? 0.5f : 0.0f;
+    case 0: return g->as > FP(30.0) ? FX : 0;
+    case 1: return FP(0.007);
+    case 3: return FP(0.01) + g->health / 1500;
+    case 4: return g->has_grave && g->dist < g->grave.left ? FX : 0;
+    case 5: return g->food == 0 ? FP(0.05) : 0;
+    case 6: return (g->weather > 7 ? FX : 0) + (g->tm < 2 ? FP(0.15) : 0);
+    case 7: return FP(0.06);
+    case 8: return FP(0.04) + (zone > 2 ? FP(0.03) : 0);
+    case 9: return FP(0.02);
+    case 10: return zone > 2 ? FP(0.05) : 0;
+    case 11: return (g->month >= 4 && g->month <= 8) ? FP(0.04) : 0;
+    case 12: return FP(0.01);
+    case 13: return FP(0.02);
+    case 14: return g->ar < FP(0.1) ? FP(0.5) : 0;
     }
-    return 0.0f;
+    return 0;
 }
 
 static void run_event(game_t *g, int k)
@@ -689,27 +698,27 @@ static void run_event(game_t *g, int k)
     case 6:
         if (g->tm < 2) {
             say(g, msg_get(22));
-            g->as += 8.0f;
+            g->as += FP(8.0);
             rest_days(g, 1);
         } else if (g->tm > 3) {
             say(g, msg_get(23));
-            g->ar += 1.0f;
+            g->ar += FP(1.0);
             rest_days(g, 1);
         }
         break;
     case 7:
         if (g->lm > 11 && g->tm < 5) {
             say(g, msg_get(24));
-            if (chance(0.5f))
+            if (chance(FP(0.5)))
                 rest_days(g, 1);
         } else if (g->lm <= 11 && g->tm == 5) {
             say(g, msg_get(25));
         }
         break;
     case 8:
-        if (chance(0.33f)) {
+        if (chance(FP(0.33))) {
             broken_wagon(g);
-        } else if (chance(0.5f)) {
+        } else if (chance(FP(0.5))) {
             if (g->ox2 > 0) {
                 g->ox2--;
                 say(g, g->ox2 % 2 == 0 ? "One of the oxen has died." : "One of the oxen is injured.");
@@ -719,13 +728,13 @@ static void run_event(game_t *g, int k)
         }
         break;
     case 9:
-        say(g, chance(0.5f) ? "You lost the trail." : "You took the wrong trail.");
+        say(g, chance(FP(0.5)) ? "You lost the trail." : "You took the wrong trail.");
         rest_days(g, ranged(1, 5));
         break;
     case 10:
-        if (chance(0.5f)) {
+        if (chance(FP(0.5))) {
             say(g, msg_get(26));
-            g->hr += 10.0f;
+            g->hr += FP(10.0);
         } else {
             say(g, msg_get(27));
             rest_days(g, ranged(1, 10));
@@ -754,18 +763,18 @@ static void run_event(game_t *g, int k)
         }
         break;
     case 13:
-        if (chance(0.5f))
+        if (chance(FP(0.5)))
             abandoned_wagon(g);
         else
             thief(g);
         break;
     case 14:
-        if (chance(0.2f)) {
+        if (chance(FP(0.2))) {
             say(g, msg_get(30));
-            g->hr += 20.0f;
-        } else if (chance(0.5f)) {
+            g->hr += FP(20.0);
+        } else if (chance(FP(0.5))) {
             say(g, msg_get(31));
-            g->hr += 10.0f;
+            g->hr += FP(10.0);
         } else {
             say(g, msg_get(32));
         }
@@ -779,8 +788,8 @@ static void run_events(game_t *g)
     int k;
 
     for (k = 0; k < 15 && g->np > 0; k++) {
-        float p = event_chance(g, k, zone);
-        if (p > 0.0f && chance(p)) {
+        long p = event_chance(g, k, zone);
+        if (p > 0 && chance(p)) {
             run_event(g, k);
             if (blocked(g))
                 break;
@@ -798,16 +807,16 @@ static void rest_days(game_t *g, int n)
 
 static void day_tick(game_t *g, bool travel)
 {
-    static const float zt_tab[6] = {2.0f, 1.0f, 0.0f, 0.0f, 1.0f, 2.0f};
-    int zone, i, afflicted = 0, p;
-    float qt, qp, zc, zf, zp, speed, v, snow, ratio;
+    static const long zt_tab[6] = {FP(2.0), FP(1.0), 0, 0, FP(1.0), FP(2.0)};
+    int zone, i, afflicted = 0, p, qt;
+    long qp, zc, zf, zp, speed, v, snow, ratio;
 
     if (g->np == 0)
         return;
     zone = zone_of(g->lm);
     qt = climate_temp[zone][g->month];
-    qp = climate_rain[zone][g->month] / 1000.0f;
-    g->hr = 0.0f;
+    qp = climate_rain[zone][g->month];
+    g->hr = 0;
     if (g->health > HEALTH_CAP)
         g->health = HEALTH_CAP;
 
@@ -823,8 +832,8 @@ static void day_tick(game_t *g, bool travel)
         }
     }
 
-    if (chance(0.5f)) {
-        int t = (int)qt + rnd(41);
+    if (chance(FP(0.5))) {
+        int t = qt + rnd(41);
         g->precip = chance(qp);
         g->tm = (t + 10) / 20;
         if (g->tm < 0)
@@ -834,32 +843,32 @@ static void day_tick(game_t *g, bool travel)
         g->weather = g->tm;
     }
 
-    g->tr = 0.0f;
-    g->ts = 0.0f;
+    g->tr = 0;
+    g->ts = 0;
     if (g->precip) {
-        bool heavy = chance(0.3f);
+        bool heavy = chance(FP(0.3));
         if (g->tm < 2) {
             g->weather = heavy ? 9 : 7;
-            g->ts = heavy ? 6.4f : 1.6f;
+            g->ts = heavy ? FP(6.4) : FP(1.6);
         } else {
             g->weather = heavy ? 8 : 6;
-            g->tr = heavy ? 0.8f : 0.2f;
+            g->tr = heavy ? FP(0.8) : FP(0.2);
         }
     } else {
         g->weather = g->tm;
     }
 
-    zc = 5.0f - 2.0f * g->tm - (float)g->clothing / (float)g->np;
-    if (zc < 0.0f)
-        zc = 0.0f;
-    zf = g->food == 0 ? 8.0f : 2.0f * g->rations;
+    zc = FP(5.0) - 2 * FX * g->tm - FDIV(g->clothing, g->np);
+    if (zc < 0)
+        zc = 0;
+    zf = g->food == 0 ? FP(8.0) : 2 * FX * g->rations;
     p = travel ? g->pace + 1 : 0;
-    zp = 2.0f * p + (g->weather > 5 ? 1.0f : 0.0f) + (g->weather > 7 ? 1.0f : 0.0f);
-    if (zc > 0.5f || g->food == 0)
-        g->fs += 0.8f;
+    zp = 2 * FX * p + (g->weather > 5 ? FX : 0) + (g->weather > 7 ? FX : 0);
+    if (zc > FP(0.5) || g->food == 0)
+        g->fs += FP(0.8);
     else
-        g->fs *= 0.5f;
-    g->health = 0.9f * g->health + zt_tab[g->tm] + zc + zf + zp + g->fs + afflicted + g->hr;
+        g->fs /= 2;
+    g->health = FMUL(FP(0.9), g->health) + zt_tab[g->tm] + zc + zf + zp + g->fs + afflicted * FX + g->hr;
     {
         int eat = g->np * (3 - g->rations);
         g->food = g->food > eat ? g->food - eat : 0;
@@ -869,32 +878,32 @@ static void day_tick(game_t *g, bool travel)
     if (g->health > HEALTH_CAP)
         g->health = HEALTH_CAP;
 
-    g->ar = 0.9f * g->ar + g->tr;
-    g->as = 0.97f * g->as + g->ts;
-    if (g->as > 0.0f && (g->tm > 2 || g->weather == 8)) {
-        g->ar += 0.5f;
-        g->as -= 5.0f;
-        if (g->as < 0.0f)
-            g->as = 0.0f;
+    g->ar = FMUL(FP(0.9), g->ar) + g->tr;
+    g->as = FMUL(FP(0.97), g->as) + g->ts;
+    if (g->as > 0 && (g->tm > 2 || g->weather == 8)) {
+        g->ar += FP(0.5);
+        g->as -= FP(5.0);
+        if (g->as < 0)
+            g->as = 0;
     }
 
     if (travel && g->np > 0 && g->leg >= 0) {
-        snow = 1.0f - g->as / 40.0f;
-        if (snow < 0.0f)
-            snow = 0.0f;
-        ratio = (g->ox2 / 2.0f) / 4.0f;
-        if (ratio > 1.0f)
-            ratio = 1.0f;
-        speed = legs[g->leg].per_day * ratio * (g->pace + 2) / 2.0f;
-        v = speed * (1.0f - 0.1f * afflicted) * snow;
-        if (v < 0.0f)
-            v = 0.0f;
-        if (1.1f * v > g->dist)
+        snow = FX - g->as / 40;
+        if (snow < 0)
+            snow = 0;
+        ratio = ((long)g->ox2 * FX) / 8;
+        if (ratio > FX)
+            ratio = FX;
+        speed = (long)legs[g->leg].per_day * ratio * (g->pace + 2) / 2;
+        v = FMUL(FMUL(speed, FX - 100 * afflicted), snow);
+        if (v < 0)
+            v = 0;
+        if (FMUL(FP(1.1), v) > g->dist)
             v = g->dist;
         g->dist -= v;
         g->miles += v;
-        if (g->dist < 0.0f)
-            g->dist = 0.0f;
+        if (g->dist < 0)
+            g->dist = 0;
     }
 
     advance_day(g);
@@ -905,14 +914,14 @@ static void travel_week(game_t *g)
     int d;
 
     g->said = false;
-    for (d = 0; d < WEEK_DAYS && g->dist > 0.0f && g->np > 0 && !blocked(g); d++) {
+    for (d = 0; d < WEEK_DAYS && g->dist > 0 && g->np > 0 && !blocked(g); d++) {
         char line[8];
 
         day_tick(g, true);
         if (g->said && g->np > 0)
             ui_pause();
         g->said = false;
-        if (d == WEEK_DAYS - 1 || g->dist <= 0.0f || g->np == 0 || blocked(g))
+        if (d == WEEK_DAYS - 1 || g->dist <= 0 || g->np == 0 || blocked(g))
             break;
         draw_status(g);
         printf(msg_get(160));
@@ -922,27 +931,18 @@ static void travel_week(game_t *g)
     }
     g->said = false;
 }
-static scene_t scene_for(const game_t *g)
-{
-    int type = landmarks[g->lm].type;
-
-    if (type == LM_RIVER)
-        return SCENE_RIVER;
-    if (type == LM_STORE)
-        return SCENE_FORT;
-    return zone_of(g->lm) >= 2 ? SCENE_MOUNTAIN : SCENE_PRAIRIE;
-}
 
 static void draw_status(game_t *g)
 {
     int i, m = g->month, winter = (m == 10 || m == 11 || m <= 1);
     int next = legs[g->leg].to;
 
-    scene_draw(scene_for(g), winter);
+    scene_draw(SCENE_JOURNEY, winter);
+    scene_journey_marker((unsigned)(g->miles / FX));
     ui_clear();
-    printf(msg_get(33), month_name[m], g->day, g->year, (int)g->miles);
+    printf(msg_get(33), month_name[m], g->day, g->year, (int)(g->miles / FX));
     printf(msg_get(34), weather_name[g->weather]);
-    printf(msg_get(35), landmarks[next].name, (int)(g->dist + 0.5f));
+    printf(msg_get(35), landmarks[next].name, (int)((g->dist + FX / 2) / FX));
     printf(msg_get(36),
            health_word(g->health),
            g->pace == PACE_STEADY ? "Steady" : g->pace == PACE_STRENUOUS ? "Strenuous" : "Grueling",
@@ -1093,10 +1093,10 @@ static void fort_store(game_t *g)
 static void do_trade(game_t *g)
 {
     int x, y, give, get, cap;
-    float z;
+    long z, f;
     char buf[120];
 
-    if (chance(0.05f)) {
+    if (chance(FP(0.05))) {
         say(g, msg_get(67));
         rest_days(g, 1);
         return;
@@ -1105,12 +1105,13 @@ static void do_trade(game_t *g)
     y = rnd(ITEM_COUNT);
     if (y == x)
         y = (y + 1) % ITEM_COUNT;
-    z = (float)trade_cents[x] / ((float)trade_cents[y] * (1.0f + 1.2f * rndf()));
-    if (z >= 1.0f) {
+    f = FX + FMUL(FP(1.2), rndf());
+    z = ((long)trade_cents[x] * FX * FX) / ((long)trade_cents[y] * f);
+    if (z >= FX) {
         give = 1;
-        get = (int)z;
+        get = (int)(z / FX);
     } else {
-        give = (int)(1.0f / z);
+        give = (int)(FX / z);
         get = 1;
     }
     if ((x == ITEM_AMMO && y == ITEM_FOOD) || (x == ITEM_FOOD && y == ITEM_AMMO)) {
@@ -1171,7 +1172,7 @@ static void do_hunt(game_t *g)
 
     for (i = 0; i < shots; i++) {
         const range_t *a;
-        if (!chance(0.4f))
+        if (!chance(FP(0.4)))
             continue;
         a = list[rnd(avail)];
         gained += ranged(a->lo, a->hi);
@@ -1327,7 +1328,7 @@ static void announce_next(game_t *g)
 static void start_leg(game_t *g)
 {
     g->leg = landmarks[g->lm].leg;
-    g->dist = legs[g->leg].miles;
+    g->dist = (long)legs[g->leg].miles * FX;
     announce_next(g);
 }
 
@@ -1340,67 +1341,67 @@ static void split_choice(game_t *g)
     printf(msg_get(90), landmarks[legs[a].to].name, (int)legs[a].miles);
     printf(msg_get(91), landmarks[legs[b].to].name, (int)legs[b].miles);
     g->leg = ui_ask_int(msg_get(92), 1, 2) == 1 ? a : b;
-    g->dist = legs[g->leg].miles;
+    g->dist = (long)legs[g->leg].miles * FX;
     announce_next(g);
 }
 
-static void ford(game_t *g, const river_t *r, float depth, float ix)
+static void ford(game_t *g, const river_t *r, long depth, long ix)
 {
-    float rd = round1(depth);
+    long rd = round1(depth);
 
-    if (rd < 2.5f) {
+    if (rd < FP(2.5)) {
         if (r->bottom == 0) {
             say(g, msg_get(93));
         } else if (r->bottom == 1) {
-            if (chance(0.4f / ix)) {
+            if (chance(FDIV(FP(0.4), ix))) {
                 say(g, msg_get(94));
                 rest_days(g, 1);
             } else {
                 say(g, msg_get(95));
             }
-        } else if (chance(0.16f / ix)) {
+        } else if (chance(FDIV(FP(0.16), ix))) {
             say(g, msg_get(96));
-            if (!lose_goods(g, 0.1f + 0.3f * rndf(), "You lost:"))
+            if (!lose_goods(g, FP(0.1) + FMUL(FP(0.3), rndf()), "You lost:"))
                 say(g, msg_get(97));
         } else {
             say(g, msg_get(98));
         }
-    } else if (rd < 3.0f) {
+    } else if (rd < FP(3.0)) {
         say(g, msg_get(99));
         rest_days(g, 1);
     } else {
         say(g, msg_get(100));
-        lose_goods(g, rd / 10.0f / ix, "You lost:");
-        lose_oxen(g, (rd - 1.0f) / 10.0f / ix, "You lost oxen:");
-        drown(g, (rd - 2.5f) / 10.0f / ix);
+        lose_goods(g, FDIV(rd / 10, ix), "You lost:");
+        lose_oxen(g, FDIV((rd - FP(1.0)) / 10, ix), "You lost oxen:");
+        drown(g, FDIV((rd - FP(2.5)) / 10, ix));
     }
 }
 
-static bool float_across(game_t *g, float depth, float swift, float ix)
+static bool float_across(game_t *g, long depth, long swift, long ix)
 {
-    float rd = round1(depth);
-    float tip = rd > 2.5f ? (swift / 20.0f) / ix : 0.0f;
+    long rd = round1(depth);
+    long tip = rd > FP(2.5) ? FDIV(swift / 20, ix) : 0;
 
-    if (rd < 1.5f) {
+    if (rd < FP(1.5)) {
         say(g, msg_get(101));
         return false;
     }
     rest_days(g, 1);
     if (chance(tip)) {
         say(g, msg_get(102));
-        lose_goods(g, (0.4f + swift / 25.0f) / ix, "You lost:");
-        drown(g, ((swift - 3.0f) / 15.0f) / ix);
+        lose_goods(g, FDIV(FP(0.4) + swift / 25, ix), "You lost:");
+        drown(g, FDIV((swift - FP(3.0)) / 15, ix));
     } else {
         say(g, msg_get(103));
     }
     return true;
 }
 
-static bool ferry(game_t *g, float depth, float swift)
+static bool ferry(game_t *g, long depth, long swift)
 {
-    float p = 0.0f;
+    long p = 0;
 
-    if (round1(depth) < 2.5f) {
+    if (round1(depth) < FP(2.5)) {
         say(g, msg_get(104));
         return false;
     }
@@ -1410,22 +1411,22 @@ static bool ferry(game_t *g, float depth, float swift)
     }
     g->money -= FERRY_CENTS;
     rest_days(g, ranged(2, 6));
-    if (swift > 5.0f)
-        p += 0.05f;
-    if (swift > 10.0f)
-        p += 0.1f;
+    if (swift > FP(5.0))
+        p += FP(0.05);
+    if (swift > FP(10.0))
+        p += FP(0.1);
     if (chance(p)) {
         say(g, msg_get(106));
-        lose_goods(g, 0.8f, "You lost:");
-        drown(g, 0.2f);
-        lose_oxen(g, 0.5f, "You lost oxen:");
+        lose_goods(g, FP(0.8), "You lost:");
+        drown(g, FP(0.2));
+        lose_oxen(g, FP(0.5), "You lost oxen:");
     } else {
         say(g, msg_get(107));
     }
     return true;
 }
 
-static bool guide(game_t *g, const river_t *r, float depth)
+static bool guide(game_t *g, const river_t *r, long depth)
 {
     int n = ranged(2, 3);
 
@@ -1437,10 +1438,10 @@ static bool guide(game_t *g, const river_t *r, float depth)
         return false;
     }
     g->clothing -= n;
-    if (round1(depth) <= 2.4f)
-        ford(g, r, depth, 5.0f);
+    if (round1(depth) <= FP(2.4))
+        ford(g, r, depth, FP(5.0));
     else
-        float_across(g, depth, r->swift + g->ar, 5.0f);
+        float_across(g, depth, (long)r->swift * FX + g->ar, FP(5.0));
     return true;
 }
 
@@ -1449,10 +1450,10 @@ static void river_crossing(game_t *g, int lm)
     const river_t *r = &rivers[river_index(lm)];
 
     for (;;) {
-        float depth = r->depth + 2.0f * g->ar;
-        float swift = r->swift + g->ar;
-        int width = (int)(r->width + 15.0f * g->ar);
-        int tenths = (int)(round1(depth) * 10.0f + 0.5f);
+        long depth = (long)r->depth * FX + 2 * g->ar;
+        long swift = (long)r->swift * FX + g->ar;
+        int width = (int)(r->width + (15 * g->ar) / FX);
+        int tenths = (int)(round1(depth) / 100);
         int opt[4], n = 0, c, done = 0;
         const char *labels[4] = {"Ford the river", "Caulk the wagon and float it", "Take the ferry", "Hire the guide"};
 
@@ -1471,11 +1472,11 @@ static void river_crossing(game_t *g, int lm)
         g->crossing = true;
         switch (opt[c - 1]) {
         case 0:
-            ford(g, r, depth, 1.0f);
+            ford(g, r, depth, FP(1.0));
             done = 1;
             break;
         case 1:
-            done = float_across(g, depth, swift, 1.0f);
+            done = float_across(g, depth, swift, FP(1.0));
             break;
         case 2:
             done = ferry(g, depth, swift);
@@ -1504,16 +1505,16 @@ static void columbia_raft(game_t *g)
 
     g->crossing = true;
     for (h = 0; h < 3 && g->np > 0; h++) {
-        if (chance(2.0f / 3.0f)) {
+        if (chance(FP(2.0 / 3.0))) {
             say(g, msg_get(115));
-            drown(g, 0.6f);
-            lose_oxen(g, 0.6f, "You lost oxen:");
-            lose_goods(g, 0.7f, "You lost:");
+            drown(g, FP(0.6));
+            lose_oxen(g, FP(0.6), "You lost oxen:");
+            lose_goods(g, FP(0.7), "You lost:");
         } else {
             say(g, msg_get(116));
-            drown(g, 0.15f);
-            lose_oxen(g, 0.3f, "You lost oxen:");
-            lose_goods(g, 0.5f, "You lost:");
+            drown(g, FP(0.15));
+            lose_oxen(g, FP(0.3), "You lost oxen:");
+            lose_goods(g, FP(0.5), "You lost:");
         }
     }
     g->crossing = false;
@@ -1545,7 +1546,7 @@ static bool dalles_choice(game_t *g)
         }
         g->money -= toll;
         g->leg = 18;
-        g->dist = legs[18].miles;
+        g->dist = (long)legs[18].miles * FX;
         announce_next(g);
         return true;
     }
@@ -1632,8 +1633,8 @@ static void start_conditions(game_t *g)
     int month1 = g->month + 1;
     int qt = climate_temp[0][g->month];
 
-    g->ar = 7.0f - month1 + rndf();
-    g->as = g->month == 2 ? 12.0f * rndf() : 0.0f;
+    g->ar = (7 - month1) * FX + rndf();
+    g->as = g->month == 2 ? FMUL(FP(12.0), rndf()) : 0;
     g->tm = (qt + 10) / 20;
     if (g->tm > 5)
         g->tm = 5;
@@ -1643,7 +1644,7 @@ static void start_conditions(game_t *g)
 
 static long points_for(const game_t *g)
 {
-    int band = (int)(g->health / 35.0f);
+    int band = (int)(g->health / (35 * FX));
     long pts = 0;
 
     if (band > 3)
@@ -1694,7 +1695,7 @@ void game_play(game_result_t *result)
         travel_week(&g);
         if (g.np == 0)
             break;
-        at_landmark = g.dist <= 0.0f;
+        at_landmark = g.dist <= 0;
         if (at_landmark)
             keep_going = arrive(&g);
     }

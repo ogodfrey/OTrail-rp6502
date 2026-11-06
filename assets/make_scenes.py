@@ -13,16 +13,20 @@ import math
 import os
 import random
 import struct
+import sys
 
 from PIL import Image, ImageDraw
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "src", "scenes.dat")
+ROUTE_BIN = os.path.join(ROOT, "assets", "journey_route.bin")
+ROUTE_BYTES = 24 * 4
 PRAIRIE_ART = os.path.join(ROOT, "assets", "prairie.png")
 RIVER_ART = os.path.join(ROOT, "assets", "river.png")
 FORT_ART = os.path.join(ROOT, "assets", "fort.png")
 MOUNTAIN_ART = os.path.join(ROOT, "assets", "mountain.png")
 STORE_ART = os.path.join(ROOT, "assets", "store.png")
+JOURNEY_ART = os.path.join(ROOT, "assets", "journey.png")
 PREVIEW_DIR = os.path.join(ROOT, "build", "scenes")
 
 W = 640
@@ -78,8 +82,14 @@ def draw_store(img, rng):
     img.paste(Image.open(STORE_ART))
 
 
-SCENE_NAMES = ["prairie", "mountain", "river", "fort", "store"]
-SCENE_DRAWERS = [draw_prairie, draw_mountain, draw_river, draw_fort, draw_store]
+def draw_journey(img, rng):
+    """The journey map is a painting already mapped to the game palette, in assets/journey.png.
+    The wagon marker is drawn over it at run time, by scene_journey_marker."""
+    img.paste(Image.open(JOURNEY_ART))
+
+
+SCENE_NAMES = ["prairie", "mountain", "river", "fort", "store", "journey"]
+SCENE_DRAWERS = [draw_prairie, draw_mountain, draw_river, draw_fort, draw_store, draw_journey]
 
 
 def build_images():
@@ -140,13 +150,18 @@ def palette_bytes(palette):
 def main():
     images = build_images()
     streams = [pack_bits(pack_rows(img)) for img in images]
-    header_len = 4 * 5 + 2 * 32
+    with open(ROUTE_BIN, "rb") as f:
+        route = f.read()
+    if len(route) != ROUTE_BYTES:
+        sys.exit("assets/journey_route.bin is missing or the wrong size; run assets/make_journey.py")
+    header_len = 4 * len(images) + 2 * 32 + ROUTE_BYTES
     offsets = []
     pos = header_len
     for s in streams:
         offsets.append(pos)
         pos += len(s)
-    data = struct.pack("<5L", *offsets) + palette_bytes(SUMMER) + palette_bytes(WINTER)
+    data = struct.pack("<%dL" % len(images), *offsets) + palette_bytes(SUMMER) + palette_bytes(WINTER)
+    data += route
     data += b"".join(streams)
     with open(OUT, "wb") as f:
         f.write(data)
