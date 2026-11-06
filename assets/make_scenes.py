@@ -19,6 +19,7 @@ from PIL import Image, ImageDraw
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "src", "scenes.dat")
 PRAIRIE_ART = os.path.join(ROOT, "assets", "prairie.png")
+RIVER_ART = os.path.join(ROOT, "assets", "river.png")
 PREVIEW_DIR = os.path.join(ROOT, "build", "scenes")
 
 W = 640
@@ -123,19 +124,6 @@ def pine(d, x, base, h):
     d.rectangle([x - 1, base - h * 0.1, x + 1, base], fill=WOOD)
 
 
-def river(d, rng):
-    xs = list(range(0, W + 1, 8))
-    top = [(x, 60 + 4 * math.sin(x / 90)) for x in xs]
-    bottom = [(x, 92 + 4 * math.sin(x / 70 + 1)) for x in xs]
-    d.polygon([(x, y - 4) for x, y in top] + [(x, y + 4) for x, y in reversed(bottom)], fill=DIRT)
-    d.polygon(top + list(reversed(bottom)), fill=WATER)
-    for _ in range(90):
-        x = rng.randrange(W)
-        y = rng.randrange(64, 92)
-        if 60 + 4 * math.sin(x / 90) < y < 92 + 4 * math.sin(x / 70 + 1):
-            d.line([(x, y), (x + rng.randrange(8, 22), y)], fill=WATER_LIGHT)
-
-
 def fort(d):
     d.rectangle([150, 50, 490, 98], fill=DIRT)
     d.rectangle([150, 92, 490, 98], fill=WOOD)
@@ -223,15 +211,8 @@ def draw_mountain(img, rng):
 
 
 def draw_river(img, rng):
-    d = ImageDraw.Draw(img)
-    sky(d)
-    cloud(d, 90, 20, 0.8)
-    far_hills(d, HZ, 10, 1.0)
-    ground(d, rng)
-    trail(d)
-    river(d, rng)
-    oxen(d, 330, 124)
-    wagon(d, 330, 124)
+    """The river crossing is a painting already mapped to the game palette, in assets/river.png."""
+    img.paste(Image.open(RIVER_ART))
 
 
 def draw_fort(img, rng):

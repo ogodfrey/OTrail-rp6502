@@ -363,8 +363,10 @@ The canvas is 640x480. The top 128 scanlines show the scene, a 4-bit VGA mode 3
 bitmap, and the console runs in VGA mode 0 below it, with 80 columns and 22 rows.
 
 There are five scenes: the prairie, the mountains, a river crossing, a fort, and
-the store. Each is a 640x128 picture in a 16-color palette. The travel scenes
-have the wagon and its oxen in front, and the store has its shelf of items.
+the store. Each is a 640x128 picture in a 16-color palette. The prairie and the
+river are paintings converted to the game palette, kept in `assets/`. The other
+scenes are drawn by `assets/make_scenes.py`. The travel scenes have the wagon
+and its oxen in front, and the store has its shelf of items.
 The winter scenes use the same pictures with a second palette, which turns the
 sky and the ground white and blue. The pictures are stored in `src/scenes.dat`
 as run-length pixels, and the palettes are in the same file.
