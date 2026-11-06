@@ -14,6 +14,7 @@ rp6502_executable(oregon DATA default RESET default)
 rp6502_web(oregon CONFIG [[
     title: 'The Oregon Trail',
     footer: 'The Picocomputer 6502 was created by <a href="https://picocomputer.github.io/index.html">Rumbledethumps</a>.',
+    autoplay: 'muted',
 ]])
 target_sources(oregon PRIVATE
     src/game.c

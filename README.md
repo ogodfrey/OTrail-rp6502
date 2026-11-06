@@ -14,7 +14,7 @@ publish: oregon.zip
 -->
 [![Play The Oregon Trail in a web browser](https://ogodfrey.github.io/OTrail-rp6502/oregon/screenshot.png)](https://ogodfrey.github.io/OTrail-rp6502/oregon/)
 
-[Play in a web browser](https://ogodfrey.github.io/OTrail-rp6502/oregon/). No download is needed.
+[Play in a web browser](https://ogodfrey.github.io/OTrail-rp6502/oregon/). No download is needed. Click the game once to start it, then type.
 
 The game follows the 1985 MECC version for the Apple II, first released by the
 Minnesota Educational Computing Consortium (MECC). This project is not
