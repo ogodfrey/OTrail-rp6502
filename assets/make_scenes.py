@@ -169,7 +169,7 @@ def wagon(d, cx, gy):
             ey = wy + (r - 2) * math.sin(math.radians(angle))
             d.line([(wx, wy), (ex, ey)], fill=DIRT)
         d.ellipse([wx - 3, wy - 3, wx + 3, wy + 3], fill=INK)
-    d.line([(cx - 42, gy - 30), (cx - 80, gy - 22)], fill=WOOD, width=4)
+    d.line([(cx - 42, gy - 30), (cx - 78, gy - 36)], fill=WOOD, width=4)
     d.rectangle([cx - 42, gy - 36, cx + 38, gy - 26], fill=WOOD, outline=INK)
     d.rounded_rectangle([cx - 44, gy - 74, cx + 40, gy - 34], radius=16, fill=WHITE, outline=INK, width=2)
     d.rectangle([cx - 40, gy - 46, cx + 36, gy - 36], fill=ROCK_LIGHT)
@@ -179,21 +179,28 @@ def wagon(d, cx, gy):
     d.rectangle([cx - 40, gy - 27, cx + 36, gy - 25], fill=INK)
 
 
-def ox(d, x, gy):
-    """An ox facing left, with x at the middle of its body."""
-    for lx in (x - 14, x - 5, x + 8, x + 17):
-        d.rectangle([lx - 3, gy - 18, lx + 3, gy], fill=WOOD, outline=INK)
-    d.ellipse([x - 20, gy - 40, x + 22, gy - 16], fill=DIRT, outline=INK)
-    d.ellipse([x - 8, gy - 46, x + 12, gy - 32], fill=DIRT, outline=INK)
-    d.line([(x + 22, gy - 34), (x + 28, gy - 24)], fill=INK, width=2)
-    d.ellipse([x - 44, gy - 44, x - 20, gy - 24], fill=DIRT, outline=INK)
-    d.line([(x - 36, gy - 44), (x - 42, gy - 54)], fill=WHITE, width=2)
-    d.line([(x - 30, gy - 44), (x - 28, gy - 54)], fill=WHITE, width=2)
+def ox(d, x, gy, body=DIRT, legs=WOOD):
+    """An ox facing left, with x at the middle of its body. The head is lowered to pull."""
+    for lx in (x - 16, x - 7, x + 14, x + 23):
+        d.rectangle([lx - 4, gy - 14, lx + 3, gy - 3], fill=legs)
+        d.rectangle([lx - 4, gy - 3, lx + 3, gy], fill=INK)
+    d.polygon([
+        (x + 30, gy - 30), (x + 16, gy - 34), (x, gy - 42), (x - 12, gy - 40),
+        (x - 18, gy - 26), (x - 6, gy - 16), (x + 12, gy - 14), (x + 28, gy - 17),
+    ], fill=body, outline=INK)
+    d.polygon([
+        (x - 14, gy - 40), (x - 22, gy - 38), (x - 32, gy - 30), (x - 36, gy - 22),
+        (x - 32, gy - 15), (x - 22, gy - 15), (x - 18, gy - 24), (x - 10, gy - 28),
+    ], fill=body, outline=INK)
+    d.line([(x - 20, gy - 38), (x - 26, gy - 48), (x - 30, gy - 46)], fill=WHITE, width=2)
+    d.point((x - 27, gy - 28), fill=INK)
+    d.line([(x + 29, gy - 28), (x + 34, gy - 18)], fill=INK)
 
 
 def oxen(d, cx, gy):
-    ox(d, cx - 128, gy - 3)
-    ox(d, cx - 100, gy)
+    """A yoke of oxen. The far ox is darker and a little behind the near one."""
+    ox(d, cx - 98, gy - 4, body=WOOD, legs=INK)
+    ox(d, cx - 72, gy)
 
 
 def draw_prairie(img, rng):
