@@ -205,7 +205,7 @@ static const char *const default_names[PARTY_SIZE - 1] = {"Amos", "Clara", "Ned"
 
 /* Base unit prices in cents: Matt's price, and the value used for trading. */
 static const char *const item_label[ITEM_COUNT] = {
-    "Oxen (each)", "Clothing (set)", "Ammunition (box of 20)",
+    "Oxen (each)", "Clothing (set)", "Ammo (box of 20)",
     "Wagon wheel", "Wagon axle", "Wagon tongue", "Food (per pound)"};
 static const long fort_base_cents[ITEM_COUNT] = {2000L, 1000L, 200L, 1000L, 1000L, 1000L, 20L};
 static const long trade_cents[ITEM_COUNT] = {2000L, 1000L, 10L, 1000L, 1000L, 1000L, 20L};
@@ -972,13 +972,16 @@ static void resolve_broken(game_t *g)
     }
 }
 
+static const int store_order[ITEM_COUNT] = {ITEM_OXEN, ITEM_FOOD, ITEM_CLOTHING, ITEM_AMMO,
+                                             ITEM_WHEEL, ITEM_AXLE, ITEM_TONGUE};
+
 static void matts_store(game_t *g)
 {
     int yoke = 0, food = 0, cloth = 0, ammo = 0, part[PART_COUNT] = {0, 0, 0};
     int choice, i;
     long bill;
     const char *labels[7] = {"Oxen, yoke of two", "Food (per pound)", "Clothing (set)",
-                             "Ammunition (box of 20)", "Wagon wheel", "Wagon axle", "Wagon tongue"};
+                             "Ammo (box of 20)", "Wagon wheel", "Wagon axle", "Wagon tongue"};
     int limits[7] = {9, 2000, 99, 99, PART_CAP, PART_CAP, PART_CAP};
     long unit[7] = {4000L, 20L, 1000L, 200L, 1000L, 1000L, 1000L};
     int *qty[7];
@@ -991,6 +994,7 @@ static void matts_store(game_t *g)
     qty[5] = &part[1];
     qty[6] = &part[2];
 
+    scene_draw(SCENE_STORE, false);
     for (;;) {
         bill = 0;
         for (i = 0; i < 7; i++)
@@ -1039,21 +1043,23 @@ static void fort_store(game_t *g)
     int choice, item, i, cap, afford, n;
     long price;
 
+    scene_draw(SCENE_STORE, false);
     for (;;) {
         ui_clear();
         printf(msg_get(56));
         ui_print_money(g->money);
         printf(msg_get(57));
         for (i = 0; i < ITEM_COUNT; i++) {
-            printf(msg_get(58), i + 1, item_label[i]);
-            ui_print_money(fort_base_cents[i] * mult / 4L);
+            item = store_order[i];
+            printf(msg_get(58), i + 1, item_label[item]);
+            ui_print_money(fort_base_cents[item] * mult / 4L);
             printf(msg_get(59));
         }
         printf(msg_get(60));
         choice = ui_ask_int(msg_get(61), 0, ITEM_COUNT);
         if (choice == 0)
             return;
-        item = choice - 1;
+        item = store_order[choice - 1];
         price = fort_base_cents[item] * mult / 4L;
         afford = (int)(g->money / price);
         if (afford == 0) {

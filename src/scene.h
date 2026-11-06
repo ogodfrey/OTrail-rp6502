@@ -8,7 +8,8 @@ typedef enum
     SCENE_PRAIRIE,
     SCENE_MOUNTAIN,
     SCENE_RIVER,
-    SCENE_FORT
+    SCENE_FORT,
+    SCENE_STORE
 } scene_t;
 
 void scene_draw(scene_t scene, bool winter);

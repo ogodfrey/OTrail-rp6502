@@ -246,8 +246,73 @@ def draw_fort(img, rng):
     wagon(d, 330, 124)
 
 
-SCENE_NAMES = ["prairie", "mountain", "river", "fort"]
-SCENE_DRAWERS = [draw_prairie, draw_mountain, draw_river, draw_fort]
+def store_wheel(d, cx, cy, r):
+    d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=WOOD, outline=INK, width=2)
+    for angle in range(0, 360, 45):
+        ex = cx + (r - 3) * math.cos(math.radians(angle))
+        ey = cy + (r - 3) * math.sin(math.radians(angle))
+        d.line([(cx, cy), (ex, ey)], fill=DIRT)
+    d.ellipse([cx - 3, cy - 3, cx + 3, cy + 3], fill=INK)
+
+
+def icon_food(d, cx, cy):
+    for x, y in ((cx + 10, cy + 6), (cx - 8, cy + 2)):
+        d.ellipse([x - 15, y - 12, x + 15, y + 18], fill=DIRT, outline=INK)
+        d.rectangle([x - 6, y - 16, x + 6, y - 10], fill=WOOD, outline=INK)
+
+
+def icon_clothing(d, cx, cy):
+    shirt = [(cx - 20, cy - 14), (cx - 9, cy - 20), (cx + 9, cy - 20), (cx + 20, cy - 14),
+             (cx + 28, cy - 2), (cx + 20, cy + 2), (cx + 16, cy - 4), (cx + 16, cy + 18),
+             (cx - 16, cy + 18), (cx - 16, cy - 4), (cx - 20, cy + 2), (cx - 28, cy - 2)]
+    d.polygon(shirt, fill=WHITE, outline=INK)
+    d.line([(cx - 9, cy - 20), (cx, cy - 8), (cx + 9, cy - 20)], fill=INK)
+
+
+def icon_ammo(d, cx, cy):
+    d.rectangle([cx - 22, cy - 2, cx + 22, cy + 20], fill=WOOD, outline=INK)
+    for y in (cy + 4, cy + 10, cy + 16):
+        d.line([(cx - 22, y), (cx + 22, y)], fill=DIRT)
+    for x in (cx - 12, cx - 4, cx + 4):
+        d.rectangle([x, cy - 16, x + 5, cy - 2], fill=SUN, outline=INK)
+
+
+def icon_wheel(d, cx, cy):
+    store_wheel(d, cx, cy + 2, 24)
+
+
+def icon_axle(d, cx, cy):
+    d.line([(cx - 30, cy + 6), (cx + 30, cy + 6)], fill=WOOD, width=5)
+    store_wheel(d, cx - 30, cy + 6, 12)
+    store_wheel(d, cx + 30, cy + 6, 12)
+
+
+def icon_tongue(d, cx, cy):
+    d.line([(cx - 30, cy + 20), (cx + 22, cy - 16)], fill=WOOD, width=6)
+    d.ellipse([cx + 14, cy - 22, cx + 30, cy - 6], outline=INK, width=2)
+
+
+def draw_store(img, rng):
+    """The general store: a plank wall and sign, with the seven items on a shelf.
+    The oxen are cut from the painted prairie, so they match it."""
+    d = ImageDraw.Draw(img)
+    d.rectangle([0, 0, W, H], fill=DIRT)
+    for y in range(12, 84, 12):
+        d.line([(0, y), (W, y)], fill=WOOD)
+    d.rectangle([170, 0, 470, 18], fill=WOOD, outline=INK)
+    d.rectangle([178, 4, 462, 14], fill=DIRT, outline=WOOD)
+    d.rectangle([0, 84, W, 89], fill=WOOD, outline=INK)
+    d.rectangle([0, 90, W, H], fill=WOOD)
+    d.line([(0, 90), (W, 90)], fill=INK)
+    oxen_art = Image.open(PRAIRIE_ART).crop((160, 36, 240, 96))
+    img.paste(oxen_art, (6, 22))
+    icons = [icon_food, icon_clothing, icon_ammo, icon_wheel, icon_axle, icon_tongue]
+    for i, icon in enumerate(icons):
+        icon(d, 46 + 91 * (i + 1), 52)
+
+
+SCENE_NAMES = ["prairie", "mountain", "river", "fort", "store"]
+SCENE_DRAWERS = [draw_prairie, draw_mountain, draw_river, draw_fort, draw_store]
 
 
 def build_images():
@@ -273,6 +338,7 @@ def pack_rows(img):
 
 
 def run_length(data):
+    """Pairs of (count, byte), each count from 1 to 255."""
     out = bytearray()
     i = 0
     while i < len(data):
@@ -298,13 +364,13 @@ def palette_bytes(palette):
 def main():
     images = build_images()
     streams = [run_length(pack_rows(img)) for img in images]
-    header_len = 4 * 4 + 2 * 32
+    header_len = 4 * 5 + 2 * 32
     offsets = []
     pos = header_len
     for s in streams:
         offsets.append(pos)
         pos += len(s)
-    data = struct.pack("<4L", *offsets) + palette_bytes(SUMMER) + palette_bytes(WINTER)
+    data = struct.pack("<5L", *offsets) + palette_bytes(SUMMER) + palette_bytes(WINTER)
     data += b"".join(streams)
     with open(OUT, "wb") as f:
         f.write(data)

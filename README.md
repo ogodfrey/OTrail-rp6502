@@ -155,6 +155,10 @@ the test doesn't touch the repo.
 
 Quantities are set, not added: choosing an item again replaces its quantity.
 
+The store screens show a picture above the text: a plank wall with the seven
+items on a shelf, in the same order as the list (oxen, food, clothing, ammo,
+wheel, axle, tongue). The forts use the same picture and item order.
+
 ### Forts
 
 Forts sell the same items one at a time, at a price that rises along the trail.
@@ -358,11 +362,12 @@ are safer choices there.
 The canvas is 640x480. The top 128 scanlines show the scene, a 4-bit VGA mode 3
 bitmap, and the console runs in VGA mode 0 below it, with 80 columns and 22 rows.
 
-There are four scenes: the prairie, the mountains, a river crossing, and a fort.
-Each is a 640x128 picture in a 16-color palette, with the wagon and its oxen in
-front. The winter scenes use the same pictures with a second palette, which
-turns the sky and the ground white and blue. The pictures are stored in
-`src/scenes.dat` as run-length pixels, and the palettes are in the same file.
+There are five scenes: the prairie, the mountains, a river crossing, a fort, and
+the store. Each is a 640x128 picture in a 16-color palette. The travel scenes
+have the wagon and its oxen in front, and the store has its shelf of items.
+The winter scenes use the same pictures with a second palette, which turns the
+sky and the ground white and blue. The pictures are stored in `src/scenes.dat`
+as run-length pixels, and the palettes are in the same file.
 
 ## Source layout
 
@@ -378,7 +383,7 @@ turns the sky and the ground white and blue. The pictures are stored in
 | `src/ui.c`, `ui.h`        | Console helpers: line input, numbered prompts, pauses, and money formatting. |
 | `src/xram.h`              | XRAM map: scene config, palette, bitmap, and VGA macros.                     |
 | `src/help.txt`            | The help text stored in the ROM as the `help` asset.                         |
-| `src/scenes.dat`          | The scenes asset: the four pictures and their summer and winter palettes.    |
+| `src/scenes.dat`          | The scenes asset: the five pictures and their summer and winter palettes.    |
 | `assets/make_scenes.py`   | Draws the scenes with Pillow and writes `src/scenes.dat`.                    |
 | `tests/playtest.py`       | The emulator smoke test.                                                     |
 | `tests/playthrough.py`    | The host playthrough: plays a full game and saves the answers.               |
