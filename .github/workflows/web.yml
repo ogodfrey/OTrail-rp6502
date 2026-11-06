@@ -11,7 +11,15 @@ on:
         description: Web player version, such as 0.40
 
 jobs:
+  configure-pages:
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+    steps:
+      - uses: actions/configure-pages@v5
+
   web:
+    needs: configure-pages
     uses: picocomputer/.github/.github/workflows/web.yml@main
     with:
       source: ${{ inputs.source }}
