@@ -12,6 +12,7 @@ void ui_clear(void)
 /* End of input ends the program, so piped test runs stop cleanly. */
 void ui_read_line(char *buf, size_t size)
 {
+    fflush(stdout);
     if (!fgets(buf, (int)size, stdin))
         exit(0);
     buf[strcspn(buf, "\r\n")] = '\0';

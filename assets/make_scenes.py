@@ -3,8 +3,8 @@
 Each scene is a 640x128 picture in 4 bits per pixel, drawn with the summer
 palette. The winter scenes use the same pictures with the winter palette.
 The file holds the start of each scene, both palettes, and the pixels of each
-scene as run-length pairs of (count, byte), where each byte holds two pixels
-and the left pixel is in the high nibble. Previews go to build/scenes.
+scene, packed with PackBits. Each byte holds two pixels, and the left pixel is
+in the high nibble. Previews go to build/scenes.
 
 Requires Pillow. Usage: python assets/make_scenes.py
 """
@@ -337,17 +337,26 @@ def pack_rows(img):
     return bytes(out)
 
 
-def run_length(data):
-    """Pairs of (count, byte), each count from 1 to 255."""
+def pack_bits(data):
+    """PackBits: a control byte below 128 is followed by that many plus one literal
+    bytes, and one from 129 to 255 is followed by a byte to repeat 257 minus that many times."""
     out = bytearray()
     i = 0
-    while i < len(data):
-        value = data[i]
-        n = 1
-        while i + n < len(data) and data[i + n] == value and n < 255:
-            n += 1
-        out += bytes((n, value))
-        i += n
+    n = len(data)
+    while i < n:
+        run = 1
+        while i + run < n and data[i + run] == data[i] and run < 128:
+            run += 1
+        if run >= 2:
+            out += bytes((257 - run, data[i]))
+            i += run
+            continue
+        start = i
+        i += 1
+        while i < n and i - start < 128 and not (i + 1 < n and data[i] == data[i + 1]):
+            i += 1
+        out.append(i - start - 1)
+        out += data[start:i]
     return bytes(out)
 
 
@@ -363,7 +372,7 @@ def palette_bytes(palette):
 
 def main():
     images = build_images()
-    streams = [run_length(pack_rows(img)) for img in images]
+    streams = [pack_bits(pack_rows(img)) for img in images]
     header_len = 4 * 5 + 2 * 32
     offsets = []
     pos = header_len
