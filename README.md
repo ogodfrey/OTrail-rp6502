@@ -370,21 +370,21 @@ turns the sky and the ground white and blue. The pictures are stored in
 | ------------------------- | ---------------------------------------------------------------------------- |
 | `src/main.c`              | Video setup, title screen, and the top 10 file.                              |
 | `src/game.c`, `game.h`    | Rules: party, supplies, weather, health, events, rivers, trade, and scoring. |
-| `src/scene.c`, `scene.h`  | Decodes a scene from the scenes asset into the XRAM bitmap and sets its palette. |
+| `src/scene.c`, `scene.h`  | Decodes scenes into the XRAM bitmap and sets the palette.                    |
 | `src/talk.c`, `talk.h`    | Talk to people: reads the talk asset and wraps each quote.                   |
 | `src/talk.txt`            | The talk asset: landmark, speaker, and quote on each line.                   |
 | `src/msg.c`, `msg.h`      | Looks up a game message in the msg asset by its number.                      |
 | `src/messages.dat`        | The msg asset: 80-byte records, one message each. Built from the game source.|
 | `src/ui.c`, `ui.h`        | Console helpers: line input, numbered prompts, pauses, and money formatting. |
-| `src/xram.h`              | The XRAM memory map: the scene config, palette, and bitmap, and the VGA macros. |
+| `src/xram.h`              | XRAM map: scene config, palette, bitmap, and VGA macros.                     |
 | `src/help.txt`            | The help text stored in the ROM as the `help` asset.                         |
 | `src/scenes.dat`          | The scenes asset: the four pictures and their summer and winter palettes.    |
 | `assets/make_scenes.py`   | Draws the scenes with Pillow and writes `src/scenes.dat`.                    |
 | `tests/playtest.py`       | The emulator smoke test.                                                     |
 | `tests/playthrough.py`    | The host playthrough: plays a full game and saves the answers.               |
 | `tests/playthrough.txt`   | The answers from the saved playthrough, used by `--replay`.                  |
-| `tests/render_scenes.py`  | The scene check: decodes the scenes on the host and compares them with the art. |
-| `tests/host/`             | The host shim: stubs for the RIA calls and the XRAM, so `src/` builds with gcc. |
+| `tests/render_scenes.py`  | Decodes scenes on the host and compares them with the art.                   |
+| `tests/host/`             | Host shim: RIA and XRAM stubs for building `src/` with gcc.                  |
 | `CMakeLists.txt`          | The `oregon` ROM target and its sources.                                     |
 | `CMakePresets.json`       | The llvm-mos Debug and Release presets.                                      |
 | `tools/`                  | The SDK scripts. `rp6502.cmake` fetches the emulator and tools.              |
