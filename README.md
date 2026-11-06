@@ -42,6 +42,15 @@ paraphrases keep each speaker's point of view and the landmark, but the words
 and speaker names are new, and the quotes are stored as the `talk` asset in
 `src/talk.txt`. The original text is not in this repository.
 
+The prairie and river crossing scenes (`assets/prairie.png` and
+`assets/river.png`) were generated with Google AI and then converted to the
+game's 16-color palette. Google's Gemini API terms say Google does not claim
+ownership of generated content, and that the user is responsible for how it is
+used. Those terms depend on the Google product used, and some jurisdictions do
+not give copyright protection to purely AI-generated images, so reuse of these
+two images may not be restricted by copyright. The other scenes are drawn in
+code by `assets/make_scenes.py`.
+
 ## Requirements
 
 * [CMake](https://cmake.org/) 3.28 or newer
