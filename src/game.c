@@ -272,9 +272,14 @@ static long round1(long x)
     return (x + 50) / 100 * 100;
 }
 
+static bool event_text;
+
 static void say(game_t *g, const char *text)
 {
-    puts(text);
+    if (event_text)
+        printf("\x1b[93m%s\x1b[39m\n", text);
+    else
+        puts(text);
     g->said = true;
 }
 
@@ -790,7 +795,9 @@ static void run_events(game_t *g)
     for (k = 0; k < 15 && g->np > 0; k++) {
         long p = event_chance(g, k, zone);
         if (p > 0 && chance(p)) {
+            event_text = true;
             run_event(g, k);
+            event_text = false;
             if (blocked(g))
                 break;
         }
@@ -930,6 +937,13 @@ static void travel_week(game_t *g)
             break;
     }
     g->said = false;
+}
+
+static void show_scene(const game_t *g, scene_t scene)
+{
+    int m = g->month;
+
+    scene_draw(scene, m == 10 || m == 11 || m <= 1);
 }
 
 static void draw_status(game_t *g)
@@ -1455,7 +1469,9 @@ static void river_crossing(game_t *g, int lm)
         int width = (int)(r->width + (15 * g->ar) / FX);
         int tenths = (int)(round1(depth) / 100);
         int opt[4], n = 0, c, done = 0;
-        const char *labels[4] = {"Ford the river", "Caulk the wagon and float it", "Take the ferry", "Hire the guide"};
+        const char *labels[4] = {"Ford the river", "Caulk the wagon and float it", "Take the ferry ($5)", "Hire the guide"};
+
+        show_scene(g, SCENE_RIVER);
 
         printf(msg_get(111), width, tenths / 10, tenths % 10);
         opt[n++] = 0;
@@ -1559,7 +1575,14 @@ static bool arrive(game_t *g)
     g->lm = legs[g->leg].to;
     g->visited |= 1UL << g->lm;
     sprintf(buf, "You have reached %s.", landmarks[g->lm].name);
-    say(g, buf);
+    if (landmarks[g->lm].type == LM_STORE && g->lm != 0) {
+        show_scene(g, SCENE_FORT);
+        ui_clear();
+        puts(buf);
+        ui_pause();
+    } else {
+        say(g, buf);
+    }
     if (g->lm == LAST_LANDMARK) {
         g->won = true;
         return false;

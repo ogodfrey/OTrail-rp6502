@@ -263,7 +263,8 @@ is already sick, or drowns in a river. The game ends when everyone is dead.
 ### Random events
 
 Events are checked once a travel day, in order. Each has the chance from the
-spec, and a handler applies its effect:
+spec, and a handler applies its effect. The text of an event is shown in bright
+yellow, so it stands out from the rest of the trail messages. The effects are:
 
 * Snowbound (certain when snow is over 30 inches): lose 1 to 10 days.
 * Snakebite (only when the weather is warm or hotter): one member, 10 days.
@@ -290,7 +291,8 @@ choices are:
   cost a day or some supplies. Deep fords can cost supplies, oxen, and members.
 * **Caulk and float**: costs a day. The wagon can tip, which costs supplies and
   can drown members. The river must be at least 1.5 feet deep.
-* **Ferry** (Kansas and Green rivers): $5 and two to six days of waiting. It can
+* **Ferry** (Kansas and Green rivers): $5 and two to six days of waiting. The
+  river menu shows the cost as "Take the ferry ($5)". It can
   break loose and lose supplies, oxen, or members.
 * **Guide** (Snake River): pay two or three sets of clothing for a guide. A
   guided crossing has less risk.
@@ -382,6 +384,8 @@ The journey map is the dashboard mockup's map with its painted wagon and
 "T: 740 mi" label removed, and the wagon marker is drawn over it at run time.
 `assets/make_journey.py` makes the map art and the route, and
 `assets/make_scenes.py` packs the scenes and the route into `src/scenes.dat`.
+The river picture shows at each river crossing, and the fort picture when you
+reach a fort, where it stays until you press Enter.
 The travel scenes have the wagon and its oxen in front, and the store has its
 row of items. The winter scenes use the same pictures with a second palette,
 which turns the sky and the ground white and blue. The pictures are stored in
