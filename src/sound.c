@@ -28,14 +28,35 @@ static const note_t river_fx[] = {{392, 4}, {349, 4}, {330, 4}, {294, 6}};
 static const note_t fort_fx[] = {{523, 6}, {659, 6}, {698, 6}, {698, 6}, {659, 12}};
 static const note_t death_fx[] = {{262, 14}, {247, 14}, {233, 24}};
 static const note_t arrive_fx[] = {{392, 10}, {523, 10}, {659, 10}, {523, 10}, {659, 10}, {698, 40}};
+/* A short wobble of stepped pitches, which sounds like a wheel turning. */
+static const note_t creak_fx[] = {{220, 2}, {196, 2}, {233, 2}, {185, 2}};
 
 static void opl_poke(unsigned reg, unsigned char val)
 {
     xram0_write(XRAM_OPL + reg, &val, 1);
 }
 
-/* One simple patch on channel c: a modulator and a carrier, slots c and c+3. */
-static void patch(unsigned c)
+/* A banjo on channel c: a sharp pluck that dies away quickly. The values are
+   the OPL2 banjo patch, with a modulator and a carrier in slots c and c+3. */
+static void banjo_patch(unsigned c)
+{
+    unsigned mod = c, car = c + 3;
+
+    opl_poke(0x20 + mod, 0x21);
+    opl_poke(0x40 + mod, 0x1A);
+    opl_poke(0x60 + mod, 0xF9);
+    opl_poke(0x80 + mod, 0xF0);
+    opl_poke(0x20 + car, 0x21);
+    opl_poke(0x40 + car, 0x00);
+    opl_poke(0x60 + car, 0xD6);
+    opl_poke(0x80 + car, 0xF4);
+    opl_poke(0xC0 + c, 0x0A);
+    opl_poke(0xE0 + mod, 0x00);
+    opl_poke(0xE0 + car, 0x00);
+}
+
+/* One simple patch on channel c for the effects: a modulator and a carrier, slots c and c+3. */
+static void effect_patch(unsigned c)
 {
     unsigned mod = c, car = c + 3;
 
@@ -85,8 +106,8 @@ static void play(unsigned c, const note_t *notes, unsigned count)
 void sound_init(void)
 {
     xreg_ria_opl(XRAM_OPL);
-    patch(TITLE_CHANNEL);
-    patch(EFFECT_CHANNEL);
+    banjo_patch(TITLE_CHANNEL);
+    effect_patch(EFFECT_CHANNEL);
 }
 
 void sound_title(void)
@@ -108,6 +129,9 @@ void sound_effect(sfx_t sfx)
         break;
     case SFX_ARRIVE:
         play(EFFECT_CHANNEL, arrive_fx, sizeof arrive_fx / sizeof arrive_fx[0]);
+        break;
+    case SFX_CREAK:
+        play(EFFECT_CHANNEL, creak_fx, sizeof creak_fx / sizeof creak_fx[0]);
         break;
     }
 }

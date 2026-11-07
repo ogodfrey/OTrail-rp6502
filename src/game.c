@@ -912,6 +912,8 @@ static void day_tick(game_t *g, bool travel)
             v = g->dist;
         g->dist -= v;
         g->miles += v;
+        if (v > 0)
+            sound_effect(SFX_CREAK);
         if (g->dist < 0)
             g->dist = 0;
     }

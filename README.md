@@ -377,10 +377,10 @@ are safer choices there.
 ## Sound
 
 The sound uses the OPL2 FM chip, which is mapped to a page of XRAM at
-`XRAM_OPL` (`$E000`). A short title tune plays when the title screen loads.
+`XRAM_OPL` (`$E000`). A short banjo tune plays when the title screen loads.
 Sound effects play for the river crossing, arriving at a fort, the party's death,
-and the arrival at Willamette Valley. The title tune takes about five seconds
-and then the prompt appears. In the web player, the sound starts with the first
+and the arrival at Willamette Valley. On each travel day when the wagon moves, a
+short creak plays. The title tune takes about five secondsand then the prompt appears. In the web player, the sound starts with the first
 click on the game, which is why the player is set to `autoplay: 'off'` in
 `CMakeLists.txt`.
 
