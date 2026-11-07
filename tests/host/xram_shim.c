@@ -13,3 +13,8 @@ void xram0_write(unsigned dest, const void *src, unsigned count)
 {
     memcpy(xram + dest, src, count);
 }
+
+void xram0_read(void *dest, unsigned src, unsigned count)
+{
+    memcpy(dest, xram + src, count);
+}

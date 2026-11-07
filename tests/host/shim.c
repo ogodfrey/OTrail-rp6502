@@ -35,3 +35,10 @@ void xram0_write(unsigned dest, const void *src, unsigned count)
     (void)src;
     (void)count;
 }
+
+void xram0_read(void *dest, unsigned src, unsigned count)
+{
+    (void)dest;
+    (void)src;
+    (void)count;
+}

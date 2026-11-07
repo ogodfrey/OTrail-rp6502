@@ -17,5 +17,6 @@ int xreg(char device, char channel, unsigned char index, ...);
 unsigned char ria_vsync(void);
 void xram0_set(unsigned dest, unsigned char val, unsigned count);
 void xram0_write(unsigned dest, const void *src, unsigned count);
+void xram0_read(void *dest, unsigned src, unsigned count);
 
 #endif

@@ -3,7 +3,7 @@
 Each scene is a 640x128 picture in 4 bits per pixel, drawn with the summer
 palette. The winter scenes use the same pictures with the winter palette.
 The file holds the start of each scene, both palettes, and the pixels of each
-scene, packed with PackBits. Each byte holds two pixels, and the left pixel is
+scene, packed with an LZ77 packer (see lz_pack). Each byte holds two pixels, and the left pixel is
 in the high nibble. Previews go to build/scenes.
 
 Requires Pillow. Usage: python assets/make_scenes.py
@@ -29,6 +29,25 @@ STORE_ART = os.path.join(ROOT, "assets", "store.png")
 JOURNEY_ART = os.path.join(ROOT, "assets", "journey.png")
 CHIMNEY_ART = os.path.join(ROOT, "assets", "chimney.png")
 INDEPENDENCE_ART = os.path.join(ROOT, "assets", "independence.png")
+SODA_SPRINGS_ART = os.path.join(ROOT, "assets", "soda_springs.png")
+BLUE_MOUNTAINS_ART = os.path.join(ROOT, "assets", "blue_mountains.png")
+BROKEN_WAGON_ART = os.path.join(ROOT, "assets", "broken_wagon.png")
+WILLAMETTE_VALLEY_ART = os.path.join(ROOT, "assets", "willamette_valley.png")
+INDEPENDENCE_TOWN_ART = os.path.join(ROOT, "assets", "independence_town.png")
+KANSAS_RIVER_ART = os.path.join(ROOT, "assets", "kansas_river.png")
+BIG_BLUE_RIVER_ART = os.path.join(ROOT, "assets", "big_blue_river.png")
+FORT_KEARNEY_ART = os.path.join(ROOT, "assets", "fort_kearney.png")
+SOUTH_PASS_ART = os.path.join(ROOT, "assets", "south_pass.png")
+GREEN_RIVER_ART = os.path.join(ROOT, "assets", "green_river.png")
+SNOW_BOUND_ART = os.path.join(ROOT, "assets", "snow_bound.png")
+SNAKE_BITE_ART = os.path.join(ROOT, "assets", "snake_bite.png")
+ILLNESS_ART = os.path.join(ROOT, "assets", "illness.png")
+GRAVESITE_ART = os.path.join(ROOT, "assets", "gravesite.png")
+INDIANS_FOOD_ART = os.path.join(ROOT, "assets", "indians_food.png")
+BLIZZARD_ART = os.path.join(ROOT, "assets", "blizzard.png")
+THUNDERSTORM_ART = os.path.join(ROOT, "assets", "thunderstorm.png")
+HEAVY_FOG_ART = os.path.join(ROOT, "assets", "heavy_fog.png")
+HAIL_STORM_ART = os.path.join(ROOT, "assets", "hail_storm.png")
 PREVIEW_DIR = os.path.join(ROOT, "build", "scenes")
 
 W = 640
@@ -100,10 +119,113 @@ def draw_independence(img, rng):
     img.paste(Image.open(INDEPENDENCE_ART))
 
 
+def draw_soda_springs(img, rng):
+    """Soda Springs is a painting already mapped to the game palette, in assets/soda_springs.png."""
+    img.paste(Image.open(SODA_SPRINGS_ART))
+
+
+def draw_blue_mountains(img, rng):
+    """The Blue Mountains are a painting already mapped to the game palette, in assets/blue_mountains.png."""
+    img.paste(Image.open(BLUE_MOUNTAINS_ART))
+
+
+def draw_broken_wagon(img, rng):
+    """The broken wagon is a painting already mapped to the game palette, in assets/broken_wagon.png."""
+    img.paste(Image.open(BROKEN_WAGON_ART))
+
+
+def draw_willamette_valley(img, rng):
+    """The Willamette Valley is a painting already mapped to the game palette, in assets/willamette_valley.png."""
+    img.paste(Image.open(WILLAMETTE_VALLEY_ART))
+
+
+def draw_independence_town(img, rng):
+    """Independence is a painting already mapped to the game palette, in assets/independence_town.png."""
+    img.paste(Image.open(INDEPENDENCE_TOWN_ART))
+
+
+def draw_kansas_river(img, rng):
+    """The Kansas River crossing is a painting already mapped to the game palette, in assets/kansas_river.png."""
+    img.paste(Image.open(KANSAS_RIVER_ART))
+
+
+def draw_big_blue_river(img, rng):
+    """The Big Blue River crossing is a painting already mapped to the game palette, in assets/big_blue_river.png."""
+    img.paste(Image.open(BIG_BLUE_RIVER_ART))
+
+
+def draw_fort_kearney(img, rng):
+    """Fort Kearney is a painting already mapped to the game palette, in assets/fort_kearney.png."""
+    img.paste(Image.open(FORT_KEARNEY_ART))
+
+
+def draw_south_pass(img, rng):
+    """South Pass is a painting already mapped to the game palette, in assets/south_pass.png."""
+    img.paste(Image.open(SOUTH_PASS_ART))
+
+
+def draw_green_river(img, rng):
+    """The Green River crossing is a painting already mapped to the game palette, in assets/green_river.png."""
+    img.paste(Image.open(GREEN_RIVER_ART))
+
+
+def draw_snow_bound(img, rng):
+    """Snow Bound is a painting already mapped to the game palette, in assets/snow_bound.png."""
+    img.paste(Image.open(SNOW_BOUND_ART))
+
+
+def draw_snake_bite(img, rng):
+    """Snake Bite is a painting already mapped to the game palette, in assets/snake_bite.png."""
+    img.paste(Image.open(SNAKE_BITE_ART))
+
+
+def draw_illness(img, rng):
+    """Illness is a painting already mapped to the game palette, in assets/illness.png."""
+    img.paste(Image.open(ILLNESS_ART))
+
+
+def draw_gravesite(img, rng):
+    """The gravesite is a painting already mapped to the game palette, in assets/gravesite.png."""
+    img.paste(Image.open(GRAVESITE_ART))
+
+
+def draw_indians_food(img, rng):
+    """Indians help find food is a painting already mapped to the game palette, in assets/indians_food.png."""
+    img.paste(Image.open(INDIANS_FOOD_ART))
+
+
+def draw_blizzard(img, rng):
+    """The blizzard is a painting already mapped to the game palette, in assets/blizzard.png."""
+    img.paste(Image.open(BLIZZARD_ART))
+
+
+def draw_thunderstorm(img, rng):
+    """The thunderstorm is a painting already mapped to the game palette, in assets/thunderstorm.png."""
+    img.paste(Image.open(THUNDERSTORM_ART))
+
+
+def draw_heavy_fog(img, rng):
+    """Heavy fog is a painting already mapped to the game palette, in assets/heavy_fog.png."""
+    img.paste(Image.open(HEAVY_FOG_ART))
+
+
+def draw_hail_storm(img, rng):
+    """Hail storm is a painting already mapped to the game palette, in assets/hail_storm.png."""
+    img.paste(Image.open(HAIL_STORM_ART))
+
+
 SCENE_NAMES = ["prairie", "mountain", "river", "fort", "store", "journey", "chimney",
-               "independence"]
+               "independence", "soda_springs", "blue_mountains", "broken_wagon",
+               "willamette_valley", "independence_town", "kansas_river", "big_blue_river",
+               "fort_kearney", "south_pass", "green_river", "snow_bound", "snake_bite", "illness",
+               "gravesite", "indians_food", "blizzard", "thunderstorm", "heavy_fog", "hail_storm"]
 SCENE_DRAWERS = [draw_prairie, draw_mountain, draw_river, draw_fort, draw_store, draw_journey,
-                 draw_chimney, draw_independence]
+                 draw_chimney, draw_independence, draw_soda_springs, draw_blue_mountains,
+                 draw_broken_wagon, draw_willamette_valley, draw_independence_town,
+                 draw_kansas_river, draw_big_blue_river, draw_fort_kearney, draw_south_pass,
+                 draw_green_river, draw_snow_bound, draw_snake_bite, draw_illness,
+                 draw_gravesite, draw_indians_food, draw_blizzard, draw_thunderstorm, draw_heavy_fog,
+                 draw_hail_storm]
 
 
 def build_images():
@@ -128,26 +250,44 @@ def pack_rows(img):
     return bytes(out)
 
 
-def pack_bits(data):
-    """PackBits: a control byte below 128 is followed by that many plus one literal
-    bytes, and one from 129 to 255 is followed by a byte to repeat 257 minus that many times."""
+def lz_pack(data):
+    """LZ77 over the whole scene. A token below 128 is followed by that many plus one
+    literal bytes. A token from 128 to 255 is a match of (token - 128) + 4 bytes, and two
+    bytes follow with its distance back into the bytes already unpacked, least significant first."""
     out = bytearray()
-    i = 0
+    lits = bytearray()
+    last = {}
     n = len(data)
+
+    def flush():
+        for j in range(0, len(lits), 128):
+            chunk = lits[j:j + 128]
+            out.append(len(chunk) - 1)
+            out.extend(chunk)
+        lits.clear()
+
+    i = 0
     while i < n:
-        run = 1
-        while i + run < n and data[i + run] == data[i] and run < 128:
-            run += 1
-        if run >= 2:
-            out += bytes((257 - run, data[i]))
-            i += run
-            continue
-        start = i
-        i += 1
-        while i < n and i - start < 128 and not (i + 1 < n and data[i] == data[i + 1]):
+        best_len = best_off = 0
+        if i + 4 <= n:
+            key = bytes(data[i:i + 4])
+            cand = last.get(key)
+            if cand is not None:
+                length = 4
+                while length < 131 and i + length < n and data[cand + length] == data[i + length]:
+                    length += 1
+                best_len, best_off = length, i - cand
+            last[key] = i
+        if best_len >= 4:
+            flush()
+            out += bytes((128 + best_len - 4, best_off & 0xFF, best_off >> 8))
+            for k in range(i + 1, min(i + best_len, n - 3)):
+                last[bytes(data[k:k + 4])] = k
+            i += best_len
+        else:
+            lits.append(data[i])
             i += 1
-        out.append(i - start - 1)
-        out += data[start:i]
+    flush()
     return bytes(out)
 
 
@@ -163,7 +303,7 @@ def palette_bytes(palette):
 
 def main():
     images = build_images()
-    streams = [pack_bits(pack_rows(img)) for img in images]
+    streams = [lz_pack(pack_rows(img)) for img in images]
     with open(ROUTE_BIN, "rb") as f:
         route = f.read()
     if len(route) != ROUTE_BYTES:

@@ -13,41 +13,32 @@
 #define JOURNEY_MILES 2040
 
 /* scenes.dat: the start of each scene, the summer and winter palettes, the
-   journey route, and then the PackBits pixels of each scene. The route is
+   journey route, and then the LZ-packed pixels of each scene. The route is
    24 points of two 16-bit values, from Independence to Willamette. The header
    is read in pieces of buf, so buf is no bigger than the largest piece. */
-#define SCENE_COUNT 8
+#define SCENE_COUNT 27
 #define PALETTE_BYTES (16 * 2)
 #define OFFSETS_BYTES (4 * SCENE_COUNT)
 #define ROUTE_OFFSET (OFFSETS_BYTES + 2 * PALETTE_BYTES)
 #define JOURNEY_POINTS 24
 #define SCENE_BYTES (SCENE_ROW_BYTES * SCENE_HEIGHT_PX)
 
-static unsigned char buf[64];
+static unsigned char buf[32];
+static unsigned char copy_buf[16];
 static unsigned pos;
-static unsigned literal, repeat;
-static unsigned char repeat_value;
-static bool need_value;
+static unsigned literal, match_len, match_dist;
+static unsigned char dist_bytes;
 
 /* Unpacks the n bytes in buf into XRAM. The state carries over from one chunk
-   to the next, since a run can cross the end of a chunk. */
+   to the next, since a token, a literal, or a distance can cross the end of a chunk.
+   A match copies bytes already in XRAM, in pieces no longer than its distance, so
+   an overlapping match repeats its bytes correctly. */
 static void unpack(unsigned n)
 {
     unsigned i = 0, k, c;
 
     while (pos < SCENE_BYTES) {
-        if (need_value) {
-            if (i >= n)
-                return;
-            repeat_value = buf[i++];
-            need_value = false;
-        }
-        if (repeat) {
-            k = repeat < SCENE_BYTES - pos ? repeat : SCENE_BYTES - pos;
-            xram0_set(XRAM_SCENE + pos, repeat_value, k);
-            pos += k;
-            repeat -= k;
-        } else if (literal) {
+        if (literal) {
             if (i >= n)
                 return;
             k = literal < n - i ? literal : n - i;
@@ -56,6 +47,25 @@ static void unpack(unsigned n)
             pos += k;
             i += k;
             literal -= k;
+        } else if (match_len) {
+            if (dist_bytes < 2) {
+                if (i >= n)
+                    return;
+                match_dist |= (unsigned)buf[i++] << (8 * dist_bytes);
+                dist_bytes++;
+                continue;
+            }
+            k = match_len;
+            if (k > SCENE_BYTES - pos)
+                k = SCENE_BYTES - pos;
+            if (k > sizeof copy_buf)
+                k = sizeof copy_buf;
+            if (k > match_dist)
+                k = match_dist;
+            xram0_read(copy_buf, XRAM_SCENE + pos - match_dist, k);
+            xram0_write(XRAM_SCENE + pos, copy_buf, k);
+            pos += k;
+            match_len -= k;
         } else {
             if (i >= n)
                 return;
@@ -63,8 +73,9 @@ static void unpack(unsigned n)
             if (c < 128)
                 literal = c + 1;
             else {
-                repeat = 257 - c;
-                need_value = true;
+                match_len = c - 128 + 4;
+                match_dist = 0;
+                dist_bytes = 0;
             }
         }
     }
@@ -78,19 +89,20 @@ void scene_draw(scene_t scene, bool winter)
 
     if (fd < 0)
         return;
-    if (read(fd, buf, OFFSETS_BYTES) != OFFSETS_BYTES) {
+    lseek(fd, 4L * scene, SEEK_SET);
+    if (read(fd, buf, 4) != 4) {
         close(fd);
         return;
     }
-    start = buf[4 * scene] | ((unsigned long)buf[4 * scene + 1] << 8) |
-            ((unsigned long)buf[4 * scene + 2] << 16) | ((unsigned long)buf[4 * scene + 3] << 24);
+    start = buf[0] | ((unsigned long)buf[1] << 8) |
+            ((unsigned long)buf[2] << 16) | ((unsigned long)buf[3] << 24);
     lseek(fd, OFFSETS_BYTES + (winter ? PALETTE_BYTES : 0), SEEK_SET);
     if (read(fd, buf, PALETTE_BYTES) == PALETTE_BYTES)
         xram0_write(XRAM_SCENE_PALETTE, buf, PALETTE_BYTES);
     lseek(fd, (long)start, SEEK_SET);
     pos = 0;
-    literal = repeat = 0;
-    need_value = false;
+    literal = match_len = match_dist = 0;
+    dist_bytes = 2;
     while (pos < SCENE_BYTES && (n = read(fd, buf, sizeof buf)) > 0)
         unpack((unsigned)n);
     close(fd);
