@@ -801,14 +801,20 @@ static void run_event(game_t *g, int k)
         } else if (chance(FP(0.5))) {
             if (g->ox2 > 0) {
                 g->ox2--;
+                show_event(g, EVENT_OXEN);
                 say(g, g->ox2 % 2 == 0 ? "One of the oxen has died." : "One of the oxen is injured.");
+                sound_event(EVENT_OXEN);
             }
         } else {
+            show_event(g, EVENT_AFFLICTED);
             member_afflict_random(g);
+            sound_event(EVENT_AFFLICTED);
         }
         break;
     case 9:
+        show_event(g, EVENT_LOST_TRAIL);
         say(g, chance(FP(0.5)) ? "You lost the trail." : "You took the wrong trail.");
+        sound_event(EVENT_LOST_TRAIL);
         rest_days(g, ranged(1, 5));
         break;
     case 10:

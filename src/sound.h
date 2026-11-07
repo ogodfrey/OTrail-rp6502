@@ -26,5 +26,8 @@ void sound_event(unsigned index);
 #define EVENT_THUNDERSTORM 6
 #define EVENT_HEAVY_FOG 7
 #define EVENT_HAIL_STORM 8
+#define EVENT_OXEN 9
+#define EVENT_AFFLICTED 10
+#define EVENT_LOST_TRAIL 11
 
 #endif

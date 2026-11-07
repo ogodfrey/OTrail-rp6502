@@ -12,3 +12,6 @@ Blizzard | blizzard
 Thunderstorm | thunderstorm
 Heavy Fog | heavy_fog
 Hail Storm | hail_storm
+Oxen Died or Injured | oxen_died_or_injured
+Party Member Afflicted | party_member_afflicted
+Lost or Wrong Trail | lost_trail

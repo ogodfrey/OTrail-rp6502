@@ -48,6 +48,9 @@ BLIZZARD_ART = os.path.join(ROOT, "assets", "blizzard.png")
 THUNDERSTORM_ART = os.path.join(ROOT, "assets", "thunderstorm.png")
 HEAVY_FOG_ART = os.path.join(ROOT, "assets", "heavy_fog.png")
 HAIL_STORM_ART = os.path.join(ROOT, "assets", "hail_storm.png")
+OXEN_ART = os.path.join(ROOT, "assets", "oxen_died_or_injured.png")
+PARTY_AFFLICTED_ART = os.path.join(ROOT, "assets", "party_member_afflicted.png")
+LOST_TRAIL_ART = os.path.join(ROOT, "assets", "lost_trail.png")
 PREVIEW_DIR = os.path.join(ROOT, "build", "scenes")
 
 W = 640
@@ -214,18 +217,34 @@ def draw_hail_storm(img, rng):
     img.paste(Image.open(HAIL_STORM_ART))
 
 
+def draw_oxen(img, rng):
+    """The oxen picture is a painting already mapped to the game palette, in assets/oxen_died_or_injured.png."""
+    img.paste(Image.open(OXEN_ART))
+
+
+def draw_party_afflicted(img, rng):
+    """A party member afflicted is a painting already mapped to the game palette, in assets/party_member_afflicted.png."""
+    img.paste(Image.open(PARTY_AFFLICTED_ART))
+
+
+def draw_lost_trail(img, rng):
+    """Lost or wrong trail is a painting already mapped to the game palette, in assets/lost_trail.png."""
+    img.paste(Image.open(LOST_TRAIL_ART))
+
+
 SCENE_NAMES = ["prairie", "mountain", "river", "fort", "store", "journey", "chimney",
                "independence", "soda_springs", "blue_mountains", "broken_wagon",
                "willamette_valley", "independence_town", "kansas_river", "big_blue_river",
                "fort_kearney", "south_pass", "green_river", "snow_bound", "snake_bite", "illness",
-               "gravesite", "indians_food", "blizzard", "thunderstorm", "heavy_fog", "hail_storm"]
+               "gravesite", "indians_food", "blizzard", "thunderstorm", "heavy_fog", "hail_storm",
+               "oxen_died_or_injured", "party_member_afflicted", "lost_trail"]
 SCENE_DRAWERS = [draw_prairie, draw_mountain, draw_river, draw_fort, draw_store, draw_journey,
                  draw_chimney, draw_independence, draw_soda_springs, draw_blue_mountains,
                  draw_broken_wagon, draw_willamette_valley, draw_independence_town,
                  draw_kansas_river, draw_big_blue_river, draw_fort_kearney, draw_south_pass,
                  draw_green_river, draw_snow_bound, draw_snake_bite, draw_illness,
                  draw_gravesite, draw_indians_food, draw_blizzard, draw_thunderstorm, draw_heavy_fog,
-                 draw_hail_storm]
+                 draw_hail_storm, draw_oxen, draw_party_afflicted, draw_lost_trail]
 
 
 def build_images():

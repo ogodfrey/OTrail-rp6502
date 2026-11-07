@@ -16,7 +16,7 @@
    journey route, and then the LZ-packed pixels of each scene. The route is
    24 points of two 16-bit values, from Independence to Willamette. The header
    is read in pieces of buf, so buf is no bigger than the largest piece. */
-#define SCENE_COUNT 27
+#define SCENE_COUNT 30
 #define PALETTE_BYTES (16 * 2)
 #define OFFSETS_BYTES (4 * SCENE_COUNT)
 #define ROUTE_OFFSET (OFFSETS_BYTES + 2 * PALETTE_BYTES)

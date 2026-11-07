@@ -16,7 +16,7 @@ import make_scenes as ms  # noqa: E402
 
 SRC = os.path.join(ROOT, "src", "events.txt")
 OUT = os.path.join(ROOT, "src", "events.dat")
-EVENTS = 9
+EVENTS = 12
 NONE = 255
 
 

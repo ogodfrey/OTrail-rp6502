@@ -116,7 +116,7 @@ void sound_title(void)
 /* Plays the tune of a landmark, read from the ROM:tunes asset (src/tunes.dat). Its
    entry is three bytes, the offset and count of the notes, and each note is three bytes. */
 #define LANDMARK_COUNT 18
-#define EVENT_COUNT 9
+#define EVENT_COUNT 12
 #define EFFECT_COUNT 7
 #define EFFECT_BASE (LANDMARK_COUNT + EVENT_COUNT)
 #define TUNE_ENTRIES (EFFECT_BASE + EFFECT_COUNT)
