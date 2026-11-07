@@ -26,10 +26,13 @@ static const note_t title_tune[] = {
 };
 static const note_t river_fx[] = {{392, 4}, {349, 4}, {330, 4}, {294, 6}};
 static const note_t fort_fx[] = {{523, 6}, {659, 6}, {698, 6}, {698, 6}, {659, 12}};
-static const note_t death_fx[] = {{262, 14}, {247, 14}, {233, 24}};
 static const note_t arrive_fx[] = {{392, 10}, {523, 10}, {659, 10}, {523, 10}, {659, 10}, {698, 40}};
 /* A short wobble of stepped pitches, which sounds like a wheel turning. */
 static const note_t creak_fx[] = {{220, 2}, {196, 2}, {233, 2}, {185, 2}};
+/* The riffs play on the banjo channel, which the title tune uses. The sad one
+   falls in a minor key. */
+static const note_t weekly_riff[] = {{392, 6}, {494, 6}, {587, 6}, {494, 6}, {392, 6}, {440, 6}, {523, 6}, {587, 12}};
+static const note_t sad_riff[] = {{440, 16}, {392, 16}, {349, 16}, {330, 16}, {294, 40}};
 
 static void opl_poke(unsigned reg, unsigned char val)
 {
@@ -125,13 +128,16 @@ void sound_effect(sfx_t sfx)
         play(EFFECT_CHANNEL, fort_fx, sizeof fort_fx / sizeof fort_fx[0]);
         break;
     case SFX_DEATH:
-        play(EFFECT_CHANNEL, death_fx, sizeof death_fx / sizeof death_fx[0]);
+        play(TITLE_CHANNEL, sad_riff, sizeof sad_riff / sizeof sad_riff[0]);
         break;
     case SFX_ARRIVE:
         play(EFFECT_CHANNEL, arrive_fx, sizeof arrive_fx / sizeof arrive_fx[0]);
         break;
     case SFX_CREAK:
         play(EFFECT_CHANNEL, creak_fx, sizeof creak_fx / sizeof creak_fx[0]);
+        break;
+    case SFX_WEEKLY:
+        play(TITLE_CHANNEL, weekly_riff, sizeof weekly_riff / sizeof weekly_riff[0]);
         break;
     }
 }

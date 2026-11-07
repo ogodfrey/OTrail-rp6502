@@ -379,9 +379,11 @@ are safer choices there.
 
 The sound uses the OPL2 FM chip, which is mapped to a page of XRAM at
 `XRAM_OPL` (`$E000`). A short banjo tune plays when the title screen loads.
-Sound effects play for the river crossing, arriving at a fort, the party's death,
-and the arrival at Willamette Valley. On each travel day when the wagon moves, a
-short creak plays. The title tune takes about five secondsand then the prompt appears. In the web player, the sound starts with the first
+Sound effects play for the river crossing, arriving at a fort, and the arrival at
+Willamette Valley. On each travel day when the wagon moves, a short creak plays.
+When the weekly summary appears, a short banjo riff plays. When a party member
+dies, a sad banjo riff in a minor key plays. The title tune takes about five seconds
+and then the prompt appears. In the web player, the sound starts with the first
 click on the game, which is why the player is set to `autoplay: 'off'` in
 `CMakeLists.txt`.
 
@@ -389,6 +391,8 @@ click on the game, which is why the player is set to `autoplay: 'off'` in
 
 The canvas is 640x480. The top 128 scanlines show the scene, a 4-bit VGA mode 3
 bitmap, and the console runs in VGA mode 0 below it, with 80 columns and 22 rows.
+The prairie shows on each travel day, and the journey map shows on the weekly
+summary.
 
 There are eight scenes: the prairie, the mountains, a river crossing, a fort, the
 store, the journey map, Chimney Rock, and Independence Rock. Each is a 640x128
@@ -420,7 +424,7 @@ same file.
 | `src/talk.txt`            | The talk asset: landmark, speaker, and quote on each line.                   |
 | `src/msg.c`, `msg.h`      | Looks up a game message in the msg asset by its number.                      |
 | `src/messages.dat`        | The msg asset: 80-byte records, one message each. Built from the game source.|
-| `src/sound.c`, `sound.h`  | OPL2 sound: the title tune, and short effects for the river, fort, death, and arrival. |
+| `src/sound.c`, `sound.h`  | OPL2 sound: the title tune, banjo riffs for the weekly summary and deaths, and short effects for the river, fort, and arrival. |
 | `src/ui.c`, `ui.h`        | Console helpers: line input, numbered prompts, pauses, and money formatting. |
 | `src/xram.h`              | XRAM map: scene config, palette, bitmap, and VGA macros.                     |
 | `src/help.txt`            | The help text stored in the ROM as the `help` asset.                         |

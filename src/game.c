@@ -242,7 +242,7 @@ static const char *const action_label[11] = {
 
 static void rest_days(game_t *g, int n);
 static void day_tick(game_t *g, bool travel);
-static void draw_status(game_t *g);
+static void draw_status(game_t *g, bool daily);
 static void illness(game_t *g);
 
 static int rnd(int n);
@@ -356,6 +356,7 @@ static void member_die(game_t *g, int i, const char *cause)
 
     sprintf(buf, "%s has died of %s.", g->party[i].name, cause);
     say(g, buf);
+    sound_effect(SFX_DEATH);
     g->party[i] = g->party[g->np - 1];
     g->np--;
     if (g->health > DEATH_HEALTH_CAP)
@@ -937,8 +938,7 @@ static void travel_week(game_t *g)
         g->said = false;
         if (d == WEEK_DAYS - 1 || g->dist <= 0 || g->np == 0 || blocked(g))
             break;
-        draw_status(g);
-        printf(msg_get(160));
+        draw_status(g, true);
         ui_read_line(line, sizeof(line));
         if (line[0] == 'm' || line[0] == 'M')
             break;
@@ -962,13 +962,17 @@ static void show_landmark_picture(game_t *g, scene_t scene, const char *text)
     ui_pause();
 }
 
-static void draw_status(game_t *g)
+static void draw_status(game_t *g, bool daily)
 {
     int i, m = g->month, winter = (m == 10 || m == 11 || m <= 1);
     int next = legs[g->leg].to;
 
-    scene_draw(SCENE_JOURNEY, winter);
-    scene_journey_marker((unsigned)(g->miles / FX));
+    if (daily) {
+        show_scene(g, SCENE_PRAIRIE);
+    } else {
+        scene_draw(SCENE_JOURNEY, winter);
+        scene_journey_marker((unsigned)(g->miles / FX));
+    }
     ui_clear();
     printf(msg_get(33), month_name[m], g->day, g->year, (int)(g->miles / FX));
     printf(msg_get(34), weather_name[g->weather]);
@@ -1262,6 +1266,8 @@ static bool confirm_quit(void)
 
 static bool action_menu(game_t *g, bool at_landmark)
 {
+    bool weekly = true;
+
     for (;;) {
         action_t acts[11];
         int n = 0, c, i;
@@ -1272,7 +1278,11 @@ static bool action_menu(game_t *g, bool at_landmark)
             g->said = false;
         }
         resolve_broken(g);
-        draw_status(g);
+        draw_status(g, false);
+        if (weekly) {
+            sound_effect(SFX_WEEKLY);
+            weekly = false;
+        }
         acts[n++] = ACT_CONTINUE;
         acts[n++] = ACT_SUPPLIES;
         acts[n++] = ACT_MAP;
@@ -1751,7 +1761,6 @@ void game_play(game_result_t *result)
         show_arrival(&g, pts);
     } else if (g.np == 0) {
         ui_clear();
-        sound_effect(SFX_DEATH);
         printf(msg_get(138));
         grave_write(&g);
         ui_pause();
