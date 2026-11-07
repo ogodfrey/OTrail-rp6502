@@ -65,6 +65,7 @@ static void effect_patch(unsigned c)
     opl_poke(0x40 + car, 0x00);
     opl_poke(0x60 + car, 0xF0);
     opl_poke(0x80 + car, 0x77);
+    opl_poke(0xC0 + c, 0x00);
 }
 
 static void note_on(unsigned c, unsigned hz)
@@ -116,7 +117,7 @@ void sound_title(void)
 /* Plays the tune of a landmark, read from the ROM:tunes asset (src/tunes.dat). Its
    entry is three bytes, the offset and count of the notes, and each note is three bytes. */
 #define LANDMARK_COUNT 18
-#define EVENT_COUNT 12
+#define EVENT_COUNT 16
 #define EFFECT_COUNT 7
 #define EFFECT_BASE (LANDMARK_COUNT + EVENT_COUNT)
 #define TUNE_ENTRIES (EFFECT_BASE + EFFECT_COUNT)
@@ -171,6 +172,25 @@ void sound_event(unsigned index)
     play_tune(TITLE_CHANNEL, LANDMARK_COUNT + index);
 }
 
+/* The wheel creak: wooden friction and resonance on channel 1, from the RP6502 OPL2
+   example. Each pair is an OPL2 register and its value: slow attack and long decay with
+   sustain on, and feedback of level 7 for the wooden grit. The notes of the creak are the
+   wheel creak tune in tunes.dat, played by play_tune. */
+static const unsigned char creak_regs[] = {
+    0x21, 0x20, 0x24, 0x21, 0x41, 0x0A, 0x44, 0x05, 0x61, 0x28,
+    0x64, 0x4A, 0x81, 0x22, 0x84, 0x24, 0xC1, 0x0E,
+};
+
+static void wheel_creak(void)
+{
+    unsigned i;
+
+    for (i = 0; i < sizeof creak_regs; i += 2)
+        opl_poke(creak_regs[i], creak_regs[i + 1]);
+    play_tune(EFFECT_CHANNEL, EFFECT_BASE + 2);
+    effect_patch(EFFECT_CHANNEL);
+}
+
 void sound_effect(sfx_t sfx)
 {
     switch (sfx) {
@@ -181,7 +201,7 @@ void sound_effect(sfx_t sfx)
         play_tune(EFFECT_CHANNEL, EFFECT_BASE + 1);
         break;
     case SFX_CREAK:
-        play_tune(EFFECT_CHANNEL, EFFECT_BASE + 2);
+        wheel_creak();
         break;
     case SFX_DEATH:
         play_tune(TITLE_CHANNEL, EFFECT_BASE + 3);

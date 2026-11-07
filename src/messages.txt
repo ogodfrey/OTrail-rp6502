@@ -1,0 +1,183 @@
+%d
+.5
+  %d %s\n
+1) Try to repair it   2) Do not try: 
+You repaired the wagon.
+You used a spare to fix the wagon.
+Since you don't have a spare, you must trade for one.
+A fire breaks out in the wagon.
+Thieves stole %d oxen.\n
+Thieves stole %d sets of clothing.\n
+Thieves stole %d bullets.\n
+Thieves stole %d pounds of food.\n
+Epitaph (up to %d characters): 
+Here lies %s.\n"%s"\n
+THE TRAIL\n\n
+%s %s%s\n
+\nMiles traveled: %d of 2040\n
+Next: %s, %d miles away\n
+Snow bound.
+You pass a gravesite. Would you like to look closer?
+1) Yes   2) No: 
+Indians help you find food. You gain 30 pounds.
+Severe blizzard.
+Severe thunderstorm.
+Heavy fog.
+Hail storm.
+The trail is rough.
+The trail is impassable.
+You found wild fruit. You gain 20 pounds of food.
+One of the oxen wanders off.
+The water is bad.
+There is very little water.
+There is inadequate grass.
+%s %d, %d    Miles: %d of 2040\n
+Weather: %s\n
+Next: %s, %d miles away\n
+Health: %s    Pace: %s    Rations: %s\n
+Money 
+  Food %d lb  Bullets %d  Clothing %d\n
+Oxen 
+  Wheels %d  Axles %d  Tongues %d\n
+Party\n
+  %-16s %s\n
+  %s\n
+\n
+You used a spare to fix the wagon.
+MATT'S GENERAL STORE        Money: 
+\n\n
+%d) %-24s 
+   have %d\n
+0) Leave the store\n\nBill: 
+\n
+Buy what? 
+We'd better go over the list again.
+Don't forget, you'll need oxen to pull your wagon.
+How many? 
+FORT STORE                  Money: 
+\n\n
+%d) %-24s 
+\n
+0) Leave the store\n
+Buy what? 
+You cannot afford that.
+You may only take 20 oxen.
+Your wagon may only carry 2000 pounds of food.
+Your wagon may only carry 3 parts.
+How many? 
+No one wants to trade with you today.
+No one wants to trade with you today.
+An emigrant wants %d %s and will trade you %d %s.\n
+1) Accept the trade   2) Decline: 
+You don't have this.
+You have no bullets.
+How many bullets to use? (0 to cancel) 
+You shot %d animals and brought back %ld pounds of meat.\n
+1) Steady   2) Strenuous   3) Grueling\n
+Pace: 
+1) Filling   2) Meager   3) Bare-bones\n
+Rations: 
+Oxen 
+\nClothing %d sets\nBullets %d\nWagon wheels %d, axles %d, tongues %d\n
+Food %d lb\nMoney 
+\n
+1) Yes, give up the journey   2) No: 
+%d) %s\n
+Choose: 
+You must trade for a spare wagon part before you can continue.
+You have no oxen to pull the wagon. Buy or trade for oxen first.
+How many days would you like to rest? (0-9) 
+The trail divides.\n
+1) Head for %s, %d miles\n
+2) Head for %s, %d miles\n
+Choose: 
+You crossed the river without trouble.
+The wagon got stuck in the mud. You lose 1 day.
+The crossing was muddy, but the wagon did not get stuck.
+The wagon tipped over.
+You did not lose anything.
+The crossing was rough, but the wagon stayed upright.
+Your supplies got wet. You lose 1 day.
+The river is too deep to ford.
+The river is too shallow to float across.
+The wagon tipped over while floating.
+The wagon floated across.
+The ferry is not operating today because the river is too shallow.
+You cannot afford the ferry.
+The ferry broke loose from its moorings.
+The ferry carried your wagon across.
+A guide offers to take your wagon across for %d sets of clothing.\n
+1) Accept   2) Decline: 
+You don't have %d sets of clothing.\n
+The river is %d feet across and %d.%d feet deep in the middle.\n
+%d) %s\n
+Choose: 
+You camp near the river for a day.
+The raft struck a rock.
+The raft struck the shore.
+The trail divides here.\n
+1) Float down the Columbia River on a raft\n
+2) Take the Barlow Toll Road, toll 
+\n
+Choose: 
+The raft reached the landing.
+You do not have enough cash.
+Choose your profession:\n
+1) Banker, 
+\n2) Carpenter, 
+\n3) Farmer, 
+\n
+Choose: 
+You are a %s.\n\n
+Departure month:\n1) March\n2) April\n3) May\n4) June\n5) July\n
+Choose: 
+Congratulations! You have made it to Oregon!\n\n
+%s %d, %d\n
+Survivors: %d of %d\n
+Points: %ld\n
+Rating: %s\n
+All of the people in your party have died.\n
+HIGH SCORES\n\n
+%d) %-16s %ld\n
+%d) ---\n
+THE OREGON TRAIL\n\n
+Independence, Missouri, 1848.\n
+Lead your party 2040 miles to the Willamette\n
+Valley in Oregon. Buy supplies, pick a pace,\n
+hunt, cross rivers, and keep everyone alive.\n\n
+1) Start a new journey\n2) High scores\n3) Quit\n\n
+Choose: 
+
+Enter a number from %d to %d.\n
+$%ld.%02ld
+Pace sets how far you go each day, and how hard it is on the party.\n
+  Steady: normal distance, least wear.\n
+  Strenuous: about half again as far, more wear.\n
+  Grueling: twice as far, most wear and illness.\n
+Rations set how much each person eats, and how well they stay healthy.\n
+  Filling: 3 pounds a day each, healthiest.\n
+  Meager: 2 pounds a day each, more wear.\n
+  Bare-bones: 1 pound a day each, most wear.\n
+Enter to keep traveling, M for the menu: 
+You found supplies in an abandoned wagon.
+The abandoned wagon is empty.
+One of the oxen has died.
+One of the oxen is injured.
+You lost the trail.
+You took the wrong trail.
+Ford the river
+Caulk the wagon and float it
+Take the ferry ($5)
+Hire the guide
+Wait a day
+Continue on the trail
+Check supplies
+Look at the map
+Change pace
+Change food rations
+Stop to rest
+Attempt to trade
+Hunt for food
+Buy supplies
+Talk to people
+Give up the journey

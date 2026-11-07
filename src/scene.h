@@ -34,7 +34,11 @@ typedef enum
     SCENE_HAIL_STORM,
     SCENE_OXEN_DIED_OR_INJURED,
     SCENE_PARTY_MEMBER_AFFLICTED,
-    SCENE_LOST_TRAIL
+    SCENE_LOST_TRAIL,
+    SCENE_WILD_FRUIT,
+    SCENE_ROUGH_TRAIL,
+    SCENE_WAGON_FIRE,
+    SCENE_PARTY_MEMBER_LOST
 } scene_t;
 
 void scene_draw(scene_t scene, bool winter);

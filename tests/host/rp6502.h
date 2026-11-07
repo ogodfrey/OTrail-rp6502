@@ -19,4 +19,10 @@ void xram0_set(unsigned dest, unsigned char val, unsigned count);
 void xram0_write(unsigned dest, const void *src, unsigned count);
 void xram0_read(void *dest, unsigned src, unsigned count);
 
+/* The console is always ready on the host: input is a pipe, read directly. */
+struct host_ria {
+    unsigned char ready;
+};
+extern struct host_ria RIA;
+
 #endif

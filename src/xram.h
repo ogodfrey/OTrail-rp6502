@@ -61,8 +61,11 @@ typedef struct
 #define XRAM_SCENE_PALETTE offsetof(xram_layout_t, scene_palette)
 #define XRAM_SCENE offsetof(xram_layout_t, scene)
 
-/* The OPL2 page is 256 bytes at a page boundary, above the scene. */
+/* The keyboard map is 32 bytes, just after the scene. */
+#define XRAM_KEYBOARD sizeof(xram_layout_t)
+
+/* The OPL2 page is 256 bytes at a page boundary, above the scene and the keyboard map. */
 #define XRAM_OPL 0xE000
-_Static_assert(sizeof(xram_layout_t) <= XRAM_OPL, "the scene overlaps the OPL2 page");
+_Static_assert(sizeof(xram_layout_t) + 32 <= XRAM_OPL, "the scene overlaps the OPL2 page");
 
 #endif

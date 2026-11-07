@@ -16,7 +16,7 @@ import struct
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "src", "tunes.dat")
 LANDMARKS = 18
-EVENTS = 12
+EVENTS = 16
 EFFECTS = 7
 ENTRIES = LANDMARKS + EVENTS + EFFECTS
 ENTRY = struct.Struct("<HB")
@@ -64,16 +64,25 @@ TUNES = {
     28: [(330, 12), (0, 6), (294, 12), (262, 12), (0, 6), (247, 12), (262, 24)],
     # Lost or wrong trail: a wandering tune that searches up and down and ends unsure.
     29: [(392, 8), (0, 4), (440, 8), (392, 8), (349, 12), (0, 6), (330, 8), (294, 8), (262, 12), (0, 6), (294, 8), (330, 20)],
-    # Sound effects: river (30), fort (31), creak (32), death (33), arrival ditty (34),
-    # weekly riff (35), broken wagon (36). The death riff is sad, in a minor key.
-    30: [(392, 4), (349, 4), (330, 4), (294, 6)],
-    31: [(523, 6), (659, 6), (698, 6), (698, 6), (659, 12)],
-    32: [(220, 2), (196, 2), (233, 2), (185, 2)],
-    33: [(440, 16), (392, 16), (349, 16), (330, 16), (294, 40)],
-    34: [(392, 8), (494, 8), (587, 8), (494, 8), (587, 8), (659, 8), (587, 8), (494, 8),
+    # Wild fruit: a bright, lilting tune for gathering berries by the trail.
+    30: [(523, 8), (659, 8), (784, 12), (0, 4), (698, 8), (659, 8), (587, 8), (659, 8), (523, 24)],
+    # Rough trail: a jolting tune, bumping along unevenly.
+    31: [(330, 6), (0, 3), (294, 6), (330, 6), (262, 10), (0, 4), (247, 6), (262, 6), (220, 24)],
+    # Wagon fire: an urgent, rising alarm in a minor key.
+    32: [(440, 4), (494, 4), (523, 4), (440, 4), (392, 6), (0, 3), (349, 6), (330, 6), (294, 6), (262, 24)],
+    # Party member lost: a searching, wistful tune that trails off into silence.
+    33: [(523, 10), (0, 4), (494, 8), (440, 8), (392, 12), (0, 6), (349, 8), (330, 8), (294, 20)],
+    # Sound effects: river (34), fort (35), wheel creak (36), death (37), arrival ditty (38),
+    # weekly riff (39), broken wagon (40). The creak's pitch wanders over a few notes; its
+    # OPL2 patch is set in sound.c. The death riff is sad, in a minor key.
+    34: [(392, 4), (349, 4), (330, 4), (294, 6)],
+    35: [(523, 6), (659, 6), (698, 6), (698, 6), (659, 12)],
+    36: [(150, 5), (120, 5), (165, 5), (110, 5), (140, 5)],
+    37: [(440, 16), (392, 16), (349, 16), (330, 16), (294, 40)],
+    38: [(392, 8), (494, 8), (587, 8), (494, 8), (587, 8), (659, 8), (587, 8), (494, 8),
          (440, 8), (494, 8), (587, 8), (659, 8), (698, 8), (659, 8), (587, 8), (494, 8), (392, 32)],
-    35: [(392, 6), (494, 6), (587, 6), (494, 6), (392, 6), (440, 6), (523, 6), (587, 12)],
-    36: [(330, 8), (0, 6), (330, 8), (0, 6), (294, 8), (0, 6), (262, 24)],
+    39: [(392, 6), (494, 6), (587, 6), (494, 6), (392, 6), (440, 6), (523, 6), (587, 12)],
+    40: [(330, 8), (0, 6), (330, 8), (0, 6), (294, 8), (0, 6), (262, 24)],
 }
 
 

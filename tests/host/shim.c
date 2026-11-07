@@ -14,6 +14,8 @@ unsigned char ria_vsync(void)
     return frame++;
 }
 
+struct host_ria RIA = {0x40};
+
 int xreg(char device, char channel, unsigned char index, ...)
 {
     (void)device;

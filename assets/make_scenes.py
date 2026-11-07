@@ -51,6 +51,10 @@ HAIL_STORM_ART = os.path.join(ROOT, "assets", "hail_storm.png")
 OXEN_ART = os.path.join(ROOT, "assets", "oxen_died_or_injured.png")
 PARTY_AFFLICTED_ART = os.path.join(ROOT, "assets", "party_member_afflicted.png")
 LOST_TRAIL_ART = os.path.join(ROOT, "assets", "lost_trail.png")
+WILD_FRUIT_ART = os.path.join(ROOT, "assets", "wild_fruit.png")
+ROUGH_TRAIL_ART = os.path.join(ROOT, "assets", "rough_trail.png")
+WAGON_FIRE_ART = os.path.join(ROOT, "assets", "wagon_fire.png")
+PARTY_MEMBER_LOST_ART = os.path.join(ROOT, "assets", "party_member_lost.png")
 PREVIEW_DIR = os.path.join(ROOT, "build", "scenes")
 
 W = 640
@@ -232,19 +236,41 @@ def draw_lost_trail(img, rng):
     img.paste(Image.open(LOST_TRAIL_ART))
 
 
+def draw_wild_fruit(img, rng):
+    """Wild fruit is a painting already mapped to the game palette, in assets/wild_fruit.png."""
+    img.paste(Image.open(WILD_FRUIT_ART))
+
+
+def draw_rough_trail(img, rng):
+    """The rough trail is a painting already mapped to the game palette, in assets/rough_trail.png."""
+    img.paste(Image.open(ROUGH_TRAIL_ART))
+
+
+def draw_wagon_fire(img, rng):
+    """The wagon fire is a painting already mapped to the game palette, in assets/wagon_fire.png."""
+    img.paste(Image.open(WAGON_FIRE_ART))
+
+
+def draw_party_member_lost(img, rng):
+    """A lost party member is a painting already mapped to the game palette, in assets/party_member_lost.png."""
+    img.paste(Image.open(PARTY_MEMBER_LOST_ART))
+
+
 SCENE_NAMES = ["prairie", "mountain", "river", "fort", "store", "journey", "chimney",
                "independence", "soda_springs", "blue_mountains", "broken_wagon",
                "willamette_valley", "independence_town", "kansas_river", "big_blue_river",
                "fort_kearney", "south_pass", "green_river", "snow_bound", "snake_bite", "illness",
                "gravesite", "indians_food", "blizzard", "thunderstorm", "heavy_fog", "hail_storm",
-               "oxen_died_or_injured", "party_member_afflicted", "lost_trail"]
+               "oxen_died_or_injured", "party_member_afflicted", "lost_trail", "wild_fruit",
+               "rough_trail", "wagon_fire", "party_member_lost"]
 SCENE_DRAWERS = [draw_prairie, draw_mountain, draw_river, draw_fort, draw_store, draw_journey,
                  draw_chimney, draw_independence, draw_soda_springs, draw_blue_mountains,
                  draw_broken_wagon, draw_willamette_valley, draw_independence_town,
                  draw_kansas_river, draw_big_blue_river, draw_fort_kearney, draw_south_pass,
                  draw_green_river, draw_snow_bound, draw_snake_bite, draw_illness,
                  draw_gravesite, draw_indians_food, draw_blizzard, draw_thunderstorm, draw_heavy_fog,
-                 draw_hail_storm, draw_oxen, draw_party_afflicted, draw_lost_trail]
+                 draw_hail_storm, draw_oxen, draw_party_afflicted, draw_lost_trail, draw_wild_fruit,
+                 draw_rough_trail, draw_wagon_fire, draw_party_member_lost]
 
 
 def build_images():

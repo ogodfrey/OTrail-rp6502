@@ -15,3 +15,7 @@ Hail Storm | hail_storm
 Oxen Died or Injured | oxen_died_or_injured
 Party Member Afflicted | party_member_afflicted
 Lost or Wrong Trail | lost_trail
+Wild Fruit | wild_fruit
+Rough Trail | rough_trail
+Wagon Fire | wagon_fire
+Party Member Lost | party_member_lost

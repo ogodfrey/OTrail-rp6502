@@ -26,6 +26,15 @@
 #define WEEK_DAYS 7
 #define LAST_LANDMARK 17
 #define DALLES 16
+#define MSG_FOUND_SUPPLIES 161
+#define MSG_WAGON_EMPTY 162
+#define MSG_OX_DIED 163
+#define MSG_OX_INJURED 164
+#define MSG_LOST_TRAIL 165
+#define MSG_WRONG_TRAIL 166
+#define MSG_RIVER_OPTION 167
+#define MSG_WAIT_DAY 171
+#define MSG_ACTION 172
 #define FERRY_CENTS 500L
 #define TOLL_BASE_CENTS 500L
 #define TOLL_PER_OX_CENTS 50L
@@ -233,20 +242,6 @@ static const char *const item_plural[ITEM_COUNT] = {
     "oxen", "sets of clothing", "bullets", "wagon wheels", "wagon axles", "wagon tongues", "pounds of food"};
 static const char *const item_singular[ITEM_COUNT] = {
     "ox", "set of clothing", "bullet", "wagon wheel", "wagon axle", "wagon tongue", "pound of food"};
-
-static const char *const action_label[11] = {
-    "Continue on the trail",
-    "Check supplies",
-    "Look at the map",
-    "Change pace",
-    "Change food rations",
-    "Stop to rest",
-    "Attempt to trade",
-    "Hunt for food",
-    "Buy supplies",
-    "Talk to people",
-    "Give up the journey",
-};
 
 static void rest_days(game_t *g, int n);
 static void day_tick(game_t *g, bool travel);
@@ -563,7 +558,7 @@ static void abandoned_wagon(game_t *g)
             }
         }
     }
-    say(g, found ? "You found supplies in an abandoned wagon." : "The abandoned wagon is empty.");
+    say(g, found ? msg_get(MSG_FOUND_SUPPLIES) : msg_get(MSG_WAGON_EMPTY));
 }
 
 static void thief(game_t *g)
@@ -802,7 +797,7 @@ static void run_event(game_t *g, int k)
             if (g->ox2 > 0) {
                 g->ox2--;
                 show_event(g, EVENT_OXEN);
-                say(g, g->ox2 % 2 == 0 ? "One of the oxen has died." : "One of the oxen is injured.");
+                say(g, g->ox2 % 2 == 0 ? msg_get(MSG_OX_DIED) : msg_get(MSG_OX_INJURED));
                 sound_event(EVENT_OXEN);
             }
         } else {
@@ -813,11 +808,12 @@ static void run_event(game_t *g, int k)
         break;
     case 9:
         show_event(g, EVENT_LOST_TRAIL);
-        say(g, chance(FP(0.5)) ? "You lost the trail." : "You took the wrong trail.");
+        say(g, chance(FP(0.5)) ? msg_get(MSG_LOST_TRAIL) : msg_get(MSG_WRONG_TRAIL));
         sound_event(EVENT_LOST_TRAIL);
         rest_days(g, ranged(1, 5));
         break;
     case 10:
+        show_event(g, EVENT_ROUGH_TRAIL);
         if (chance(FP(0.5))) {
             say(g, msg_get(26));
             g->hr += FP(10.0);
@@ -825,6 +821,7 @@ static void run_event(game_t *g, int k)
             say(g, msg_get(27));
             rest_days(g, ranged(1, 10));
         }
+        sound_event(EVENT_ROUGH_TRAIL);
         break;
     case 11:
         g->food += 20;
@@ -833,12 +830,17 @@ static void run_event(game_t *g, int k)
     case 12:
         switch (rnd(3)) {
         case 0:
+            show_event(g, EVENT_WAGON_FIRE);
             fire(g);
+            sound_event(EVENT_WAGON_FIRE);
             break;
         case 1: {
             char buf[80];
+
+            show_event(g, EVENT_PARTY_LOST);
             sprintf(buf, "%s is lost.", g->party[member_pick(g)].name);
             say(g, buf);
+            sound_event(EVENT_PARTY_LOST);
             rest_days(g, ranged(1, 5));
             break;
         }
@@ -855,6 +857,7 @@ static void run_event(game_t *g, int k)
             thief(g);
         break;
     case 14:
+        show_event(g, EVENT_WILD_FRUIT);
         if (chance(FP(0.2))) {
             say(g, msg_get(30));
             g->hr += FP(20.0);
@@ -864,6 +867,7 @@ static void run_event(game_t *g, int k)
         } else {
             say(g, msg_get(32));
         }
+        sound_event(EVENT_WILD_FRUIT);
         break;
     }
 }
@@ -1380,8 +1384,11 @@ static bool action_menu(game_t *g, bool at_landmark)
         if (at_landmark && g->lm < TALK_LANDMARKS)
             acts[n++] = ACT_TALK;
         acts[n++] = ACT_QUIT;
-        for (i = 0; i < n; i++)
-            printf(msg_get(84), i + 1, action_label[acts[i]]);
+        for (i = 0; i < n; i++) {
+            printf("%d) ", i + 1);
+            printf(msg_get(MSG_ACTION + acts[i]));
+            putchar('\n');
+        }
         c = ui_ask_int(msg_get(85), 1, n);
 
         switch (acts[c - 1]) {
@@ -1596,7 +1603,6 @@ static void river_crossing(game_t *g, int lm)
         int width = (int)(r->width + (15 * g->ar) / FX);
         int tenths = (int)(round1(depth) / 100);
         int opt[4], n = 0, c, done = 0;
-        const char *labels[4] = {"Ford the river", "Caulk the wagon and float it", "Take the ferry ($5)", "Hire the guide"};
 
         show_scene(g, scene);
 
@@ -1608,8 +1614,11 @@ static void river_crossing(game_t *g, int lm)
         if (r->extra == 1)
             opt[n++] = 3;
         opt[n++] = 4;
-        for (c = 0; c < n; c++)
-            printf(msg_get(112), c + 1, opt[c] == 4 ? "Wait a day" : labels[opt[c]]);
+        for (c = 0; c < n; c++) {
+            printf("%d) ", c + 1);
+            printf(msg_get(opt[c] == 4 ? MSG_WAIT_DAY : MSG_RIVER_OPTION + opt[c]));
+            putchar('\n');
+        }
         c = ui_ask_int(msg_get(113), 1, n);
 
         g->crossing = true;
