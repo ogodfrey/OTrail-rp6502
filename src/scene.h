@@ -10,7 +10,9 @@ typedef enum
     SCENE_RIVER,
     SCENE_FORT,
     SCENE_STORE,
-    SCENE_JOURNEY
+    SCENE_JOURNEY,
+    SCENE_CHIMNEY,
+    SCENE_INDEPENDENCE
 } scene_t;
 
 void scene_draw(scene_t scene, bool winter);

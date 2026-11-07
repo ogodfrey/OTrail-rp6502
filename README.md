@@ -42,9 +42,10 @@ paraphrases keep each speaker's point of view and the landmark, but the words
 and speaker names are new, and the quotes are stored as the `talk` asset in
 `src/talk.txt`. The original text is not in this repository.
 
-The prairie, river crossing, fort, mountain, and store scenes (`assets/prairie.png`,
-`assets/river.png`, `assets/fort.png`, `assets/mountain.png`, and
-`assets/store.png`) were generated with Google AI (Gemini and Nano Banana 2) and
+The prairie, river crossing, fort, mountain, store, Chimney Rock, and Independence
+Rock scenes (`assets/prairie.png`, `assets/river.png`, `assets/fort.png`,
+`assets/mountain.png`, `assets/store.png`, `assets/chimney.png`, and
+`assets/independence.png`) were generated with Google AI (Gemini and Nano Banana 2) and
 then converted to the game's 16-color palette. The journey map (`assets/journey.png`)
 is from a journey dashboard image made with Google AI, with the painted wagon and
 its label removed. Google's Gemini API terms say
@@ -389,15 +390,19 @@ click on the game, which is why the player is set to `autoplay: 'off'` in
 The canvas is 640x480. The top 128 scanlines show the scene, a 4-bit VGA mode 3
 bitmap, and the console runs in VGA mode 0 below it, with 80 columns and 22 rows.
 
-There are six scenes: the prairie, the mountains, a river crossing, a fort, the
-store, and the journey map. Each is a 640x128 picture in a 16-color palette.
-The first five are paintings converted to the game palette, kept in `assets/`.
-The journey map is the dashboard mockup's map with its painted wagon and
-"T: 740 mi" label removed, and the wagon marker is drawn over it at run time.
+There are eight scenes: the prairie, the mountains, a river crossing, a fort, the
+store, the journey map, Chimney Rock, and Independence Rock. Each is a 640x128
+picture in a 16-color palette. Except for the journey map, they are paintings
+converted to the game palette, kept in `assets/`. The journey map is the dashboard
+mockup's map with its painted wagon and "T: 740 mi" label removed, and the wagon
+marker is drawn over it at run time. The Chimney Rock and Independence Rock
+paintings are cropped to a 5:1 strip from wider images, so the wagon is cut off.
 `assets/make_journey.py` makes the map art and the route, and
 `assets/make_scenes.py` packs the scenes and the route into `src/scenes.dat`.
 The river picture shows at each river crossing, and the fort picture when you
-reach a fort, where it stays until you press Enter.
+reach a fort, where it stays until you press Enter. Chimney Rock and Independence
+Rock show their pictures the same way, and the mountains from South Pass to Green
+River show the mountain picture.
 The travel scenes have the wagon and its oxen in front, and the store has its
 row of items. The winter scenes use the same pictures with a second palette,
 which turns the sky and the ground white and blue. The pictures are stored in

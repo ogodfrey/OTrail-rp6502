@@ -26,8 +26,10 @@
 #define WEEK_DAYS 7
 #define LAST_LANDMARK 17
 #define DALLES 16
-#define MOUNTAIN_FIRST 6
+#define MOUNTAIN_FIRST 7
 #define MOUNTAIN_LAST 9
+#define CHIMNEY_ROCK 4
+#define INDEPENDENCE_ROCK 6
 #define FERRY_CENTS 500L
 #define TOLL_BASE_CENTS 500L
 #define TOLL_PER_OX_CENTS 50L
@@ -1594,6 +1596,10 @@ static bool arrive(game_t *g)
     if (landmarks[g->lm].type == LM_STORE && g->lm != 0) {
         sound_effect(SFX_FORT);
         show_landmark_picture(g, SCENE_FORT, buf);
+    } else if (g->lm == CHIMNEY_ROCK) {
+        show_landmark_picture(g, SCENE_CHIMNEY, buf);
+    } else if (g->lm == INDEPENDENCE_ROCK) {
+        show_landmark_picture(g, SCENE_INDEPENDENCE, buf);
     } else if (g->lm >= MOUNTAIN_FIRST && g->lm <= MOUNTAIN_LAST) {
         show_landmark_picture(g, SCENE_MOUNTAIN, buf);
     } else {

@@ -27,6 +27,8 @@ FORT_ART = os.path.join(ROOT, "assets", "fort.png")
 MOUNTAIN_ART = os.path.join(ROOT, "assets", "mountain.png")
 STORE_ART = os.path.join(ROOT, "assets", "store.png")
 JOURNEY_ART = os.path.join(ROOT, "assets", "journey.png")
+CHIMNEY_ART = os.path.join(ROOT, "assets", "chimney.png")
+INDEPENDENCE_ART = os.path.join(ROOT, "assets", "independence.png")
 PREVIEW_DIR = os.path.join(ROOT, "build", "scenes")
 
 W = 640
@@ -88,8 +90,20 @@ def draw_journey(img, rng):
     img.paste(Image.open(JOURNEY_ART))
 
 
-SCENE_NAMES = ["prairie", "mountain", "river", "fort", "store", "journey"]
-SCENE_DRAWERS = [draw_prairie, draw_mountain, draw_river, draw_fort, draw_store, draw_journey]
+def draw_chimney(img, rng):
+    """Chimney Rock is a painting already mapped to the game palette, in assets/chimney.png."""
+    img.paste(Image.open(CHIMNEY_ART))
+
+
+def draw_independence(img, rng):
+    """Independence Rock is a painting already mapped to the game palette, in assets/independence.png."""
+    img.paste(Image.open(INDEPENDENCE_ART))
+
+
+SCENE_NAMES = ["prairie", "mountain", "river", "fort", "store", "journey", "chimney",
+               "independence"]
+SCENE_DRAWERS = [draw_prairie, draw_mountain, draw_river, draw_fort, draw_store, draw_journey,
+                 draw_chimney, draw_independence]
 
 
 def build_images():
