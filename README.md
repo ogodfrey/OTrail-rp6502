@@ -373,11 +373,11 @@ bitmap, and the console runs in VGA mode 0 below it, with 80 columns and 22 rows
 The prairie shows on each travel day, and the journey map shows on the weekly
 summary.
 
-There are thirty-four scenes: the prairie, the mountains, a river crossing, a fort, the
+There are thirty-eight scenes: the prairie, the mountains, a river crossing, a fort, the
 store, the journey map, Chimney Rock, Independence Rock, Soda Springs, the Blue
 Mountains, a broken wagon, the Willamette Valley, the Independence town (Matt's store),
-the Kansas River and Big Blue River crossings, Fort Kearney (also shown at Fort Laramie), South Pass, the Green River crossing, Snow Bound, Snake Bite, Illness, the Gravesite, Indians Help Find Food, The Blizzard, the Thunderstorm, Heavy Fog, Hail Storm, Oxen Died or Injured, Party Member Afflicted, Lost or Wrong Trail, Wild Fruit, Rough Trail, Wagon Fire, and Party Member Lost. Each is a 640x128picture in a 16-color palette. Except for the journey map, they are paintingsconverted to the game palette, kept in `assets/`. The journey map is the dashboardmockup's map with its painted wagon and "T: 740 mi" label removed, and the wagon
-marker is drawn over it at run time. The Chimney Rock, Independence Rock, Soda
+the Kansas River and Big Blue River crossings, Fort Kearney (also shown at Fort Laramie), South Pass, the Green River crossing, Snow Bound, Snake Bite, Illness, the Gravesite, Indians Help Find Food, The Blizzard, the Thunderstorm, Heavy Fog, Hail Storm, Oxen Died or Injured, Party Member Afflicted, Lost or Wrong Trail, Wild Fruit, Rough Trail, Wagon Fire, Party Member Lost, Abandoned Wagon, Thief at Night, Bad or Little Water, and Inadequate Grass. Each is a 640x128
+picture in a 16-color palette. Except for the journey map, they are paintingsconverted to the game palette, kept in `assets/`. The journey map is the dashboardmockup's map with its painted wagon and "T: 740 mi" label removed, and the wagonmarker is drawn over it at run time. The Chimney Rock, Independence Rock, Soda
 Springs, and Blue Mountains paintings are cropped to a 5:1 strip from wider images, so the wagon is cut off.
 `assets/make_journey.py` makes the map art and the route, and
 `assets/make_scenes.py` packs the scenes and the route into `src/scenes.dat`.
@@ -404,13 +404,13 @@ same file.
 | `src/talk.c`, `src/talk.h`   | Talk to people: reads the talk asset and wraps each quote.                                        |
 | `src/talk.txt`               | The talk asset: landmark, speaker, and quote on each line.                                        |
 | `src/msg.c`, `src/msg.h`     | Looks up a game message in the msg asset by its number.                                           |
-| `src/messages.txt`           | The messages, one per line: line number is the message id. Escapes: `\n` and `\\`.              |
+| `src/messages.txt`           | The messages, one per line: line number is the message id. Escapes: `\n` and `\\`.                |
 | `src/messages.dat`           | The msg asset: 80-byte records, one message each, written by `assets/make_messages.py`.           |
 | `src/sound.c`, `src/sound.h` | OPL2 sound: the title tune, banjo riffs, landmark tunes, the ditty, and short effects.            |
 | `src/ui.c`, `src/ui.h`       | Console helpers: line input, numbered prompts, pauses, and money formatting.                      |
 | `src/xram.h`                 | XRAM map: scene config, palette, bitmap, and VGA macros.                                          |
 | `src/help.txt`               | The help text stored in the ROM as the `help` asset.                                              |
-| `src/scenes.dat`             | The scenes asset: the thirty-four pictures, both palettes, and the journey route.                 |
+| `src/scenes.dat`             | The scenes asset: the thirty-eight pictures, both palettes, and the journey route.                |
 | `src/tunes.dat`              | The tunes asset: landmark and event tunes, read from disk when they play.                         |
 | `src/landmarks.txt`          | The landmarks, one per line: name, type, legs, and the pictures at each.                          |
 | `src/landmarks.dat`          | The landmarks asset: 24-byte records, read from disk on arrival.                                  |
@@ -482,8 +482,8 @@ River, and Big Blue River scenes (`assets/prairie.png`, `assets/river.png`, `ass
 `assets/independence.png`, `assets/soda_springs.png`, `assets/blue_mountains.png`,
 `assets/broken_wagon.png`, `assets/willamette_valley.png`, and
 `assets/independence_town.png`, `assets/kansas_river.png`, `assets/big_blue_river.png`, and
-`assets/fort_kearney.png`, `assets/south_pass.png`, `assets/green_river.png`, `assets/snow_bound.png`, `assets/snake_bite.png`, `assets/illness.png`, `assets/gravesite.png`, `assets/indians_food.png`, `assets/blizzard.png`, `assets/thunderstorm.png`, `assets/heavy_fog.png`, and `assets/hail_storm.png`, `assets/oxen_died_or_injured.png`, `assets/party_member_afflicted.png`, and `assets/lost_trail.png`, `assets/wild_fruit.png`, `assets/rough_trail.png`, `assets/wagon_fire.png`, and `assets/party_member_lost.png`) were generated with Google AI (Gemini and NanoBanana 2) and then converted to the game's 16-color palette. The journey map(`assets/journey.png`) is from a journey dashboard image made with Google AI, with
-the painted wagon and its label removed. Google's Gemini API terms say
+`assets/fort_kearney.png`, `assets/south_pass.png`, `assets/green_river.png`, `assets/snow_bound.png`, `assets/snake_bite.png`, `assets/illness.png`, `assets/gravesite.png`, `assets/indians_food.png`, `assets/blizzard.png`, `assets/thunderstorm.png`, `assets/heavy_fog.png`, and `assets/hail_storm.png`, `assets/oxen_died_or_injured.png`, `assets/party_member_afflicted.png`, and `assets/lost_trail.png`, `assets/wild_fruit.png`, `assets/rough_trail.png`, `assets/wagon_fire.png`, `assets/party_member_lost.png`, `assets/abandoned_wagon.png`, `assets/thief_night.png`, `assets/little_water.png`, and `assets/inadequate_grass.png`) were generated with Google AI
+ (Gemini and NanoBanana 2) and then converted to the game's 16-color palette. The journey map(`assets/journey.png`) is from a journey dashboard image made with Google AI, withthe painted wagon and its label removed. Google's Gemini API terms say
 Google does not claim ownership of generated content, and that the user is
 responsible for how it is used. Those terms depend on the Google product used,
 and some jurisdictions do not give copyright protection to purely AI-generated

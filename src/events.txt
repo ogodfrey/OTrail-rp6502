@@ -19,3 +19,7 @@ Wild Fruit | wild_fruit
 Rough Trail | rough_trail
 Wagon Fire | wagon_fire
 Party Member Lost | party_member_lost
+Abandoned Wagon | abandoned_wagon
+Thief at Night | thief_night
+Bad or Little Water | little_water
+Inadequate Grass | inadequate_grass

@@ -156,6 +156,7 @@ typedef struct {
     unsigned long visited;
     grave_t grave;
     bool has_grave;
+    unsigned char art;
 } game_t;
 
 /* Reads landmark i from the landmarks asset (src/landmarks.dat). Its name is copied into
@@ -724,70 +725,71 @@ static void show_event(const game_t *g, int ev)
         show_scene(g, (scene_t)scene);
 }
 
+/* Plays the picture and tune of the event that set g->art, once its text is shown. */
+#define NO_ART 255
+
+static void event_art(game_t *g)
+{
+    show_event(g, g->art);
+    sound_event(g->art);
+    g->art = NO_ART;
+}
+
 static void run_event(game_t *g, int k)
 {
     switch (k) {
     case 0:
-        show_event(g, EVENT_SNOW_BOUND);
+        g->art = EVENT_SNOW_BOUND;
         say(g, msg_get(18));
-        sound_event(EVENT_SNOW_BOUND);
         rest_days(g, ranged(1, 10));
         break;
     case 1:
         if (g->tm > 2) {
-            show_event(g, EVENT_SNAKE_BITE);
+            g->art = EVENT_SNAKE_BITE;
             afflict(g, member_pick(g), 2);
-            sound_event(EVENT_SNAKE_BITE);
         }
         break;
     case 3:
-        show_event(g, EVENT_ILLNESS);
+        g->art = EVENT_ILLNESS;
         illness(g);
-        sound_event(EVENT_ILLNESS);
         break;
     case 4: {
         grave_t here = g->grave;
 
-        show_event(g, EVENT_GRAVESITE);
+        g->art = EVENT_GRAVESITE;
         say(g, msg_get(19));
-        sound_event(EVENT_GRAVESITE);
         if (ui_ask_int(msg_get(20), 1, 2) == 1)
             show_grave(&here);
         g->has_grave = grave_next(g->leg, here.left, &g->grave);
         break;
     }
     case 5:
-        show_event(g, EVENT_INDIANS_FOOD);
+        g->art = EVENT_INDIANS_FOOD;
         g->food += 30;
         say(g, msg_get(21));
-        sound_event(EVENT_INDIANS_FOOD);
         break;
     case 6:
         if (g->tm < 2) {
-            show_event(g, EVENT_BLIZZARD);
+            g->art = EVENT_BLIZZARD;
             say(g, msg_get(22));
-            sound_event(EVENT_BLIZZARD);
             g->as += FP(8.0);
             rest_days(g, 1);
         } else if (g->tm > 3) {
-            show_event(g, EVENT_THUNDERSTORM);
+            g->art = EVENT_THUNDERSTORM;
             say(g, msg_get(23));
-            sound_event(EVENT_THUNDERSTORM);
             g->ar += FP(1.0);
             rest_days(g, 1);
         }
         break;
     case 7:
         if (g->lm > 11 && g->tm < 5) {
-            show_event(g, EVENT_HEAVY_FOG);
+            g->art = EVENT_HEAVY_FOG;
             say(g, msg_get(24));
-            sound_event(EVENT_HEAVY_FOG);
             if (chance(FP(0.5)))
                 rest_days(g, 1);
         } else if (g->lm <= 11 && g->tm == 5) {
-            show_event(g, EVENT_HAIL_STORM);
+            g->art = EVENT_HAIL_STORM;
             say(g, msg_get(25));
-            sound_event(EVENT_HAIL_STORM);
         }
         break;
     case 8:
@@ -796,24 +798,21 @@ static void run_event(game_t *g, int k)
         } else if (chance(FP(0.5))) {
             if (g->ox2 > 0) {
                 g->ox2--;
-                show_event(g, EVENT_OXEN);
+                g->art = EVENT_OXEN;
                 say(g, g->ox2 % 2 == 0 ? msg_get(MSG_OX_DIED) : msg_get(MSG_OX_INJURED));
-                sound_event(EVENT_OXEN);
             }
         } else {
-            show_event(g, EVENT_AFFLICTED);
+            g->art = EVENT_AFFLICTED;
             member_afflict_random(g);
-            sound_event(EVENT_AFFLICTED);
         }
         break;
     case 9:
-        show_event(g, EVENT_LOST_TRAIL);
+        g->art = EVENT_LOST_TRAIL;
         say(g, chance(FP(0.5)) ? msg_get(MSG_LOST_TRAIL) : msg_get(MSG_WRONG_TRAIL));
-        sound_event(EVENT_LOST_TRAIL);
         rest_days(g, ranged(1, 5));
         break;
     case 10:
-        show_event(g, EVENT_ROUGH_TRAIL);
+        g->art = EVENT_ROUGH_TRAIL;
         if (chance(FP(0.5))) {
             say(g, msg_get(26));
             g->hr += FP(10.0);
@@ -821,26 +820,24 @@ static void run_event(game_t *g, int k)
             say(g, msg_get(27));
             rest_days(g, ranged(1, 10));
         }
-        sound_event(EVENT_ROUGH_TRAIL);
         break;
     case 11:
+        g->art = EVENT_WILD_FRUIT;
         g->food += 20;
         say(g, msg_get(28));
         break;
     case 12:
         switch (rnd(3)) {
         case 0:
-            show_event(g, EVENT_WAGON_FIRE);
+            g->art = EVENT_WAGON_FIRE;
             fire(g);
-            sound_event(EVENT_WAGON_FIRE);
             break;
         case 1: {
             char buf[80];
 
-            show_event(g, EVENT_PARTY_LOST);
+            g->art = EVENT_PARTY_LOST;
             sprintf(buf, "%s is lost.", g->party[member_pick(g)].name);
             say(g, buf);
-            sound_event(EVENT_PARTY_LOST);
             rest_days(g, ranged(1, 5));
             break;
         }
@@ -851,23 +848,27 @@ static void run_event(game_t *g, int k)
         }
         break;
     case 13:
-        if (chance(FP(0.5)))
+        if (chance(FP(0.5))) {
+            g->art = EVENT_ABANDONED_WAGON;
             abandoned_wagon(g);
-        else
+        } else {
+            g->art = EVENT_THIEF;
             thief(g);
+        }
         break;
     case 14:
-        show_event(g, EVENT_WILD_FRUIT);
         if (chance(FP(0.2))) {
+            g->art = EVENT_WATER;
             say(g, msg_get(30));
             g->hr += FP(20.0);
         } else if (chance(FP(0.5))) {
+            g->art = EVENT_WATER;
             say(g, msg_get(31));
             g->hr += FP(10.0);
         } else {
+            g->art = EVENT_GRASS;
             say(g, msg_get(32));
         }
-        sound_event(EVENT_WILD_FRUIT);
         break;
     }
 }
@@ -881,7 +882,10 @@ static void run_events(game_t *g)
         long p = event_chance(g, k, zone);
         if (p > 0 && chance(p)) {
             event_text = true;
+            g->art = NO_ART;
             run_event(g, k);
+            if (g->art != NO_ART)
+                event_art(g);
             event_text = false;
             if (blocked(g))
                 break;

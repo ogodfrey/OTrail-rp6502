@@ -33,5 +33,9 @@ void sound_event(unsigned index);
 #define EVENT_ROUGH_TRAIL 13
 #define EVENT_WAGON_FIRE 14
 #define EVENT_PARTY_LOST 15
+#define EVENT_ABANDONED_WAGON 16
+#define EVENT_THIEF 17
+#define EVENT_WATER 18
+#define EVENT_GRASS 19
 
 #endif

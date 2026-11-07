@@ -55,6 +55,10 @@ WILD_FRUIT_ART = os.path.join(ROOT, "assets", "wild_fruit.png")
 ROUGH_TRAIL_ART = os.path.join(ROOT, "assets", "rough_trail.png")
 WAGON_FIRE_ART = os.path.join(ROOT, "assets", "wagon_fire.png")
 PARTY_MEMBER_LOST_ART = os.path.join(ROOT, "assets", "party_member_lost.png")
+ABANDONED_WAGON_ART = os.path.join(ROOT, "assets", "abandoned_wagon.png")
+THIEF_NIGHT_ART = os.path.join(ROOT, "assets", "thief_night.png")
+LITTLE_WATER_ART = os.path.join(ROOT, "assets", "little_water.png")
+INADEQUATE_GRASS_ART = os.path.join(ROOT, "assets", "inadequate_grass.png")
 PREVIEW_DIR = os.path.join(ROOT, "build", "scenes")
 
 W = 640
@@ -256,13 +260,34 @@ def draw_party_member_lost(img, rng):
     img.paste(Image.open(PARTY_MEMBER_LOST_ART))
 
 
+def draw_abandoned_wagon(img, rng):
+    """The abandoned wagon is a painting already mapped to the game palette, in assets/abandoned_wagon.png."""
+    img.paste(Image.open(ABANDONED_WAGON_ART))
+
+
+def draw_thief_night(img, rng):
+    """The thief at night is a painting already mapped to the game palette, in assets/thief_night.png."""
+    img.paste(Image.open(THIEF_NIGHT_ART))
+
+
+def draw_little_water(img, rng):
+    """Bad and little water are a painting already mapped to the game palette, in assets/little_water.png."""
+    img.paste(Image.open(LITTLE_WATER_ART))
+
+
+def draw_inadequate_grass(img, rng):
+    """Inadequate grass is a painting already mapped to the game palette, in assets/inadequate_grass.png."""
+    img.paste(Image.open(INADEQUATE_GRASS_ART))
+
+
 SCENE_NAMES = ["prairie", "mountain", "river", "fort", "store", "journey", "chimney",
                "independence", "soda_springs", "blue_mountains", "broken_wagon",
                "willamette_valley", "independence_town", "kansas_river", "big_blue_river",
                "fort_kearney", "south_pass", "green_river", "snow_bound", "snake_bite", "illness",
                "gravesite", "indians_food", "blizzard", "thunderstorm", "heavy_fog", "hail_storm",
                "oxen_died_or_injured", "party_member_afflicted", "lost_trail", "wild_fruit",
-               "rough_trail", "wagon_fire", "party_member_lost"]
+               "rough_trail", "wagon_fire", "party_member_lost",
+               "abandoned_wagon", "thief_night", "little_water", "inadequate_grass"]
 SCENE_DRAWERS = [draw_prairie, draw_mountain, draw_river, draw_fort, draw_store, draw_journey,
                  draw_chimney, draw_independence, draw_soda_springs, draw_blue_mountains,
                  draw_broken_wagon, draw_willamette_valley, draw_independence_town,
@@ -270,7 +295,8 @@ SCENE_DRAWERS = [draw_prairie, draw_mountain, draw_river, draw_fort, draw_store,
                  draw_green_river, draw_snow_bound, draw_snake_bite, draw_illness,
                  draw_gravesite, draw_indians_food, draw_blizzard, draw_thunderstorm, draw_heavy_fog,
                  draw_hail_storm, draw_oxen, draw_party_afflicted, draw_lost_trail, draw_wild_fruit,
-                 draw_rough_trail, draw_wagon_fire, draw_party_member_lost]
+                 draw_rough_trail, draw_wagon_fire, draw_party_member_lost,
+                 draw_abandoned_wagon, draw_thief_night, draw_little_water, draw_inadequate_grass]
 
 
 def build_images():
