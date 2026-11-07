@@ -60,18 +60,23 @@ void ui_clear(void)
    program, so piped test runs stop cleanly. */
 void ui_read_line(char *buf, size_t size)
 {
+    static bool last_was_cr;
+    static int pending = -1;
     size_t n = 0;
 
     fflush(stdout);
     for (;;) {
         int c;
 
-        if (RIA.ready & RIA_READY_RX) {
+        if (pending >= 0) {
+            c = pending;
+            pending = -1;
+        } else if (RIA.ready & RIA_READY_RX) {
             char ch;
 
             if (read(STDIN_FILENO, &ch, 1) != 1)
                 exit(0);
-            c = ch;
+            c = (unsigned char)ch;
         } else {
             c = keypad_key();
             if (!c) {
@@ -79,10 +84,25 @@ void ui_read_line(char *buf, size_t size)
                 continue;
             }
         }
-        if (c == '\r')
+        if (c == '\n' && last_was_cr) {
+            last_was_cr = false;
             continue;
-        if (c == '\n')
+        }
+        last_was_cr = (c == '\r');
+        if (c == '\r' || c == '\n') {
+            /* A CR LF pair from one keypress: take the LF now, so the next line does not wait for it. */
+            if (last_was_cr && (RIA.ready & RIA_READY_RX)) {
+                char ch;
+
+                if (read(STDIN_FILENO, &ch, 1) != 1)
+                    exit(0);
+                if (ch == '\n')
+                    last_was_cr = false;
+                else
+                    pending = (unsigned char)ch;
+            }
             break;
+        }
         if (n + 1 < size)
             buf[n++] = (char)c;
     }
