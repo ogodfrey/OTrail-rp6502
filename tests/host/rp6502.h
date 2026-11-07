@@ -14,6 +14,7 @@
 
 long ria_attr_get(unsigned char id);
 int xreg(char device, char channel, unsigned char index, ...);
+unsigned char ria_vsync(void);
 void xram0_set(unsigned dest, unsigned char val, unsigned count);
 void xram0_write(unsigned dest, const void *src, unsigned count);
 

@@ -7,6 +7,7 @@
 #include <string.h>
 #include "game.h"
 #include "scene.h"
+#include "sound.h"
 #include "talk.h"
 #include "ui.h"
 #include "msg.h"
@@ -1474,6 +1475,8 @@ static void river_crossing(game_t *g, int lm)
 {
     const river_t *r = &rivers[river_index(lm)];
 
+    sound_effect(SFX_RIVER);
+
     for (;;) {
         long depth = (long)r->depth * FX + 2 * g->ar;
         long swift = (long)r->swift * FX + g->ar;
@@ -1586,12 +1589,14 @@ static bool arrive(game_t *g)
     g->lm = legs[g->leg].to;
     g->visited |= 1UL << g->lm;
     sprintf(buf, "You have reached %s.", landmarks[g->lm].name);
-    if (landmarks[g->lm].type == LM_STORE && g->lm != 0)
+    if (landmarks[g->lm].type == LM_STORE && g->lm != 0) {
+        sound_effect(SFX_FORT);
         show_landmark_picture(g, SCENE_FORT, buf);
-    else if (g->lm >= MOUNTAIN_FIRST && g->lm <= MOUNTAIN_LAST)
+    } else if (g->lm >= MOUNTAIN_FIRST && g->lm <= MOUNTAIN_LAST) {
         show_landmark_picture(g, SCENE_MOUNTAIN, buf);
-    else
+    } else {
         say(g, buf);
+    }
     if (g->lm == LAST_LANDMARK) {
         g->won = true;
         return false;
@@ -1734,9 +1739,11 @@ void game_play(game_result_t *result)
 
     if (g.won) {
         pts = points_for(&g);
+        sound_effect(SFX_ARRIVE);
         show_arrival(&g, pts);
     } else if (g.np == 0) {
         ui_clear();
+        sound_effect(SFX_DEATH);
         printf(msg_get(138));
         grave_write(&g);
         ui_pause();

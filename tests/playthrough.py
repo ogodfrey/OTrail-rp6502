@@ -54,7 +54,7 @@ def build():
     shutil.copy(os.path.join(ROOT, "src", "messages.dat"), os.path.join(HOST, "rom_msg"))
     shutil.copy(os.path.join(ROOT, "src", "talk.txt"), os.path.join(HOST, "rom_talk"))
     shutil.copy(os.path.join(ROOT, "src", "scenes.dat"), os.path.join(HOST, "rom_scenes"))
-    sources = [os.path.join(src, n) for n in ("game.c", "main.c", "scene.c", "talk.c", "ui.c", "msg.c")]
+    sources = [os.path.join(src, n) for n in ("game.c", "main.c", "scene.c", "sound.c", "talk.c", "ui.c", "msg.c")]
     tests = os.path.join(ROOT, "tests", "host")
     result = subprocess.run(
         [GCC, "-std=gnu99", "-O1", "-w", "-include", os.path.join(tests, "binary.h"),

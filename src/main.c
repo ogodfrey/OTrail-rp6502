@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include "game.h"
 #include "scene.h"
+#include "sound.h"
 #include "ui.h"
 #include "msg.h"
 #include "xram.h"
@@ -120,11 +121,13 @@ int main(void)
     xreg_vga_mode3(MODE3_4BPP, XRAM_SCENE_CONFIG, 0, 0, SCENE_HEIGHT_PX);
     xreg_vga_mode0(0, SCENE_HEIGHT_PX);
     srand((unsigned)ria_attr_get(RIA_ATTR_LRAND));
+    sound_init();
 
     for (;;)
     {
         scene_draw(SCENE_PRAIRIE, false);
         show_title();
+        sound_title();
         switch (ui_ask_int(msg_get(148), 1, 3))
         {
         case 1:

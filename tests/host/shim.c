@@ -7,6 +7,13 @@ long ria_attr_get(unsigned char id)
     return 42;
 }
 
+unsigned char ria_vsync(void)
+{
+    static unsigned char frame;
+
+    return frame++;
+}
+
 int xreg(char device, char channel, unsigned char index, ...)
 {
     (void)device;

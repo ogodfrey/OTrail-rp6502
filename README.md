@@ -359,7 +359,9 @@ These parts of the Apple II game are missing or simplified here:
   not the arcade game with its arrow-key steering.
 * **Scene graphics** are hand-drawn pictures in 16 colors. They are not the
   Apple II pictures.
-* **Music and sound** are not implemented.
+* **Music** is a short title tune only. There's no music on the trail, and
+  the sound is an OPL2 FM chip with a single simple patch, so it won't sound like
+  the Apple II.
 * **Native American encounters** are not implemented.
 * **Give up the journey** is an addition. The Apple II ends only by arrival or
   death.
@@ -371,6 +373,16 @@ The spec's values have not been checked against the Apple II by playing it.
 Under the spec's river formulas, a Kansas River ford in March can be very deadly,
 because the early ground moisture makes the river deep. The ferry or caulking
 are safer choices there.
+
+## Sound
+
+The sound uses the OPL2 FM chip, which is mapped to a page of XRAM at
+`XRAM_OPL` (`$E000`). A short title tune plays when the title screen loads.
+Sound effects play for the river crossing, arriving at a fort, the party's death,
+and the arrival at Willamette Valley. The title tune takes about five seconds
+and then the prompt appears. In the web player, the sound starts with the first
+click on the game, which is why the player is set to `autoplay: 'off'` in
+`CMakeLists.txt`.
 
 ## Screen layout
 
@@ -403,6 +415,7 @@ same file.
 | `src/talk.txt`            | The talk asset: landmark, speaker, and quote on each line.                   |
 | `src/msg.c`, `msg.h`      | Looks up a game message in the msg asset by its number.                      |
 | `src/messages.dat`        | The msg asset: 80-byte records, one message each. Built from the game source.|
+| `src/sound.c`, `sound.h`  | OPL2 sound: the title tune, and short effects for the river, fort, death, and arrival. |
 | `src/ui.c`, `ui.h`        | Console helpers: line input, numbered prompts, pauses, and money formatting. |
 | `src/xram.h`              | XRAM map: scene config, palette, bitmap, and VGA macros.                     |
 | `src/help.txt`            | The help text stored in the ROM as the `help` asset.                         |
