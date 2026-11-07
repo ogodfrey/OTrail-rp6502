@@ -642,16 +642,33 @@ static void show_grave(const grave_t *gr)
     ui_pause();
 }
 
+/* The journey picture, then the landmarks in three columns, down each column in
+   route order, so the list fits under the picture. */
 static void show_map(game_t *g)
 {
-    int i;
+    int i, r, c, m = g->month, winter = (m == 10 || m == 11 || m <= 1);
+    int count = (int)(sizeof(landmarks) / sizeof(landmarks[0]));
+    int rows = (count + 2) / 3;
 
+    scene_draw(SCENE_JOURNEY, winter);
+    scene_journey_marker((unsigned)(g->miles / FX));
     ui_clear();
     printf(msg_get(14));
-    for (i = 0; i < (int)(sizeof(landmarks) / sizeof(landmarks[0])); i++) {
-        bool seen = (g->visited >> i) & 1UL;
-        printf(msg_get(15), seen ? "[x]" : "[ ]", landmarks[i].name,
-               i == g->lm ? "  <- you are here" : "");
+    for (r = 0; r < rows; r++) {
+        for (c = 0; c < 3; c++) {
+            char cell[32];
+            int k;
+
+            i = c * rows + r;
+            if (i >= count)
+                continue;
+            sprintf(cell, "%s%s", i == g->lm ? "> " : (g->visited >> i) & 1UL ? "[x] " : "[ ] ",
+                    landmarks[i].name);
+            printf("%s", cell);
+            for (k = strlen(cell); k < 27 && c < 2; k++)
+                putchar(' ');
+        }
+        putchar('\n');
     }
     printf(msg_get(16), (int)(g->miles / FX));
     printf(msg_get(17), landmarks[legs[g->leg].to].name, (int)((g->dist + FX / 2) / FX));
