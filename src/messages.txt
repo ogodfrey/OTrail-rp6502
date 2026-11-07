@@ -181,3 +181,4 @@ Hunt for food
 Buy supplies
 Talk to people
 Give up the journey
+The party leader needs a name.\n

@@ -35,6 +35,7 @@
 #define MSG_RIVER_OPTION 167
 #define MSG_WAIT_DAY 171
 #define MSG_ACTION 172
+#define MSG_LEADER_NAME 183
 #define FERRY_CENTS 500L
 #define TOLL_BASE_CENTS 500L
 #define TOLL_PER_OX_CENTS 50L
@@ -1747,8 +1748,13 @@ static void ask_name(char *dest, const char *prompt, const char *fallback)
 {
     char line[NAME_LEN + 8];
 
-    fputs(prompt, stdout);
-    ui_read_line(line, sizeof(line));
+    for (;;) {
+        fputs(prompt, stdout);
+        ui_read_line(line, sizeof(line));
+        if (line[0] || fallback)
+            break;
+        fputs(msg_get(MSG_LEADER_NAME), stdout);
+    }
     if (!line[0])
         strcpy(line, fallback);
     line[NAME_MAX] = '\0';
@@ -1773,7 +1779,7 @@ static void setup_party(game_t *g)
     g->money = occ_money[g->occ - 1];
     printf(msg_get(130), occ_name[g->occ - 1]);
 
-    ask_name(g->party[0].name, "Name of the party leader: ", "Pioneer");
+    ask_name(g->party[0].name, "Name of the party leader: ", NULL);
     strcpy(g->leader, g->party[0].name);
     for (i = 1; i < PARTY_SIZE; i++) {
         sprintf(prompt, "Name of companion %d (Enter for %s): ", i, default_names[i - 1]);

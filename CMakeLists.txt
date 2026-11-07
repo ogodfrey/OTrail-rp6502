@@ -14,11 +14,17 @@ rp6502_asset(oregon tunes src/tunes.dat)
 rp6502_asset(oregon landmarks src/landmarks.dat)
 rp6502_asset(oregon events src/events.dat)
 rp6502_executable(oregon DATA default RESET default)
-rp6502_web(oregon CONFIG [[
-    title: 'The Oregon Trail',
-    footer: 'The Picocomputer 6502 was created by <a href="https://picocomputer.github.io/index.html">Rumbledethumps</a>.',
-    autoplay: 'off',
-]])
+execute_process(
+    COMMAND git describe --tags --always
+    WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
+    OUTPUT_VARIABLE OREGON_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE OREGON_VERSION_RESULT)
+if(NOT OREGON_VERSION_RESULT EQUAL 0 OR OREGON_VERSION STREQUAL "")
+    set(OREGON_VERSION "dev")
+endif()
+rp6502_web(oregon CONFIG "    title: 'The Oregon Trail',\n    footer: 'Version ${OREGON_VERSION}. The Picocomputer 6502 was created by <a href=\"https://picocomputer.github.io/index.html\">Rumbledethumps</a>.',\n    autoplay: 'off',\n")
 target_sources(oregon PRIVATE
     src/game.c
     src/main.c
