@@ -1,0 +1,14 @@
+# The event pictures, one per line in event order (the EVENT_ numbers in src/sound.h).
+# The tune of each event is in src/tunes.dat, keyed by the same number.
+#
+# Columns: event | picture
+# picture: a scene name from assets/make_scenes.py, or - for none.
+Snow Bound | snow_bound
+Snake Bite | snake_bite
+Illness | illness
+Gravesite | gravesite
+Indians Help Find Food | indians_food
+Blizzard | blizzard
+Thunderstorm | thunderstorm
+Heavy Fog | heavy_fog
+Hail Storm | hail_storm

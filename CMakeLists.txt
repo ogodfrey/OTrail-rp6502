@@ -10,6 +10,9 @@ rp6502_asset(oregon help src/help.txt)
 rp6502_asset(oregon talk src/talk.txt)
 rp6502_asset(oregon msg src/messages.dat)
 rp6502_asset(oregon scenes src/scenes.dat)
+rp6502_asset(oregon tunes src/tunes.dat)
+rp6502_asset(oregon landmarks src/landmarks.dat)
+rp6502_asset(oregon events src/events.dat)
 rp6502_executable(oregon DATA default RESET default)
 rp6502_web(oregon CONFIG [[
     title: 'The Oregon Trail',
@@ -24,4 +27,18 @@ target_sources(oregon PRIVATE
     src/sound.c
     src/talk.c
     src/ui.c
+)
+
+# The linker checks the static RAM sections, but not the stack. Fail the build
+# when the stack would be too short to run safely. The ROM is written first,
+# so it can still be inspected.
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+get_filename_component(oregon_mos_bin "${CMAKE_C_COMPILER}" DIRECTORY)
+find_program(OREGON_LLVM_NM llvm-nm HINTS "${oregon_mos_bin}" REQUIRED)
+find_program(OREGON_LLVM_SIZE llvm-size HINTS "${oregon_mos_bin}" REQUIRED)
+set(OREGON_MIN_STACK 512 CACHE STRING "Bytes of RAM the ROM must leave for the stack")
+add_custom_command(TARGET oregon POST_BUILD
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/assets/check_memory.py"
+            "$<TARGET_FILE:oregon>.elf" "${OREGON_LLVM_NM}" "${OREGON_LLVM_SIZE}" "${OREGON_MIN_STACK}"
+    VERBATIM
 )

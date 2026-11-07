@@ -26,10 +26,6 @@
 #define WEEK_DAYS 7
 #define LAST_LANDMARK 17
 #define DALLES 16
-#define MOUNTAIN_FIRST 7
-#define MOUNTAIN_LAST 9
-#define CHIMNEY_ROCK 4
-#define INDEPENDENCE_ROCK 6
 #define FERRY_CENTS 500L
 #define TOLL_BASE_CENTS 500L
 #define TOLL_PER_OX_CENTS 50L
@@ -63,12 +59,20 @@ typedef enum {
     ACT_QUIT
 } action_t;
 
+/* A landmark's numbers, read from the landmarks asset by landmark_read(). The arrive and
+   cross fields are scene numbers, and NO_SCENE means none. */
 typedef struct {
-    const char *name;
     uint8_t type;
     uint8_t leg;
     int8_t alt_leg;
+    uint8_t arrive;
+    uint8_t cross;
 } landmark_t;
+
+#define LANDMARK_COUNT 18
+#define LANDMARK_RECORD 24
+#define LANDMARK_NAME_LEN 18
+#define NO_SCENE 255
 
 typedef struct {
     uint16_t miles;
@@ -145,27 +149,31 @@ typedef struct {
     bool has_grave;
 } game_t;
 
-/* Index 0 is Independence. A landmark's leg is the one it departs on. */
-static const landmark_t landmarks[18] = {
-    {"Independence", LM_STORE, 0, -1},
-    {"Kansas River", LM_RIVER, 1, -1},
-    {"Big Blue River", LM_RIVER, 2, -1},
-    {"Fort Kearney", LM_STORE, 3, -1},
-    {"Chimney Rock", LM_OTHER, 4, -1},
-    {"Fort Laramie", LM_STORE, 5, -1},
-    {"Independence Rock", LM_OTHER, 6, -1},
-    {"South Pass", LM_OTHER, 7, 8},
-    {"Fort Bridger", LM_STORE, 9, -1},
-    {"Green River", LM_RIVER, 10, -1},
-    {"Soda Springs", LM_OTHER, 11, -1},
-    {"Fort Hall", LM_STORE, 12, -1},
-    {"Snake River", LM_RIVER, 13, -1},
-    {"Fort Boise", LM_STORE, 14, -1},
-    {"Blue Mountains", LM_OTHER, 15, 16},
-    {"Fort Walla Walla", LM_STORE, 17, -1},
-    {"The Dalles", LM_OTHER, 18, -1},
-    {"Willamette Valley", LM_OTHER, 0, -1},
-};
+/* Reads landmark i from the landmarks asset (src/landmarks.dat). Its name is copied into
+   name, which holds LANDMARK_NAME_LEN bytes, when name is not NULL. A landmark's leg is
+   the one it departs on. */
+static void landmark_read(int i, landmark_t *lm, char *name)
+{
+    unsigned char rec[LANDMARK_RECORD];
+    int fd = open("ROM:landmarks", O_RDONLY);
+    int k;
+
+    for (k = 0; k < LANDMARK_RECORD; k++)
+        rec[k] = 0;
+    if (fd >= 0) {
+        lseek(fd, (long)i * LANDMARK_RECORD, SEEK_SET);
+        read(fd, rec, LANDMARK_RECORD);
+        close(fd);
+    }
+    lm->type = rec[18];
+    lm->leg = rec[19];
+    lm->alt_leg = (int8_t)rec[20];
+    lm->arrive = rec[21];
+    lm->cross = rec[22];
+    if (name)
+        for (k = 0; k < LANDMARK_NAME_LEN; k++)
+            name[k] = (char)rec[k];
+}
 
 static const leg_t legs[19] = {
     {102, 20, 1}, {83, 20, 2}, {119, 20, 3}, {250, 20, 4}, {86, 20, 5},
@@ -243,6 +251,7 @@ static const char *const action_label[11] = {
 static void rest_days(game_t *g, int n);
 static void day_tick(game_t *g, bool travel);
 static void draw_status(game_t *g, bool daily);
+static void show_scene(const game_t *g, scene_t scene);
 static void illness(game_t *g);
 
 static int rnd(int n);
@@ -508,8 +517,10 @@ static void broken_wagon(game_t *g)
     int p = rnd(PART_COUNT);
     char buf[80];
 
+    show_scene(g, SCENE_BROKEN_WAGON);
     sprintf(buf, "A wagon %s is broken.", part_name[p]);
     say(g, buf);
+    sound_effect(SFX_BROKEN);
     if (ui_ask_int(msg_get(3), 1, 2) == 1 && chance(FP(0.5)))
         say(g, msg_get(4));
     else if (g->spares[p] > 0) {
@@ -647,8 +658,7 @@ static void show_grave(const grave_t *gr)
 static void show_map(game_t *g)
 {
     int i, r, c, m = g->month, winter = (m == 10 || m == 11 || m <= 1);
-    int count = (int)(sizeof(landmarks) / sizeof(landmarks[0]));
-    int rows = (count + 2) / 3;
+    int rows = (LANDMARK_COUNT + 2) / 3;
 
     scene_draw(SCENE_JOURNEY, winter);
     scene_journey_marker((unsigned)(g->miles / FX));
@@ -656,14 +666,16 @@ static void show_map(game_t *g)
     printf(msg_get(14));
     for (r = 0; r < rows; r++) {
         for (c = 0; c < 3; c++) {
-            char cell[32];
+            char cell[32], name[LANDMARK_NAME_LEN];
+            landmark_t lm;
             int k;
 
             i = c * rows + r;
-            if (i >= count)
+            if (i >= LANDMARK_COUNT)
                 continue;
+            landmark_read(i, &lm, name);
             sprintf(cell, "%s%s", i == g->lm ? "> " : (g->visited >> i) & 1UL ? "[x] " : "[ ] ",
-                    landmarks[i].name);
+                    name);
             printf("%s", cell);
             for (k = strlen(cell); k < 27 && c < 2; k++)
                 putchar(' ');
@@ -671,7 +683,13 @@ static void show_map(game_t *g)
         putchar('\n');
     }
     printf(msg_get(16), (int)(g->miles / FX));
-    printf(msg_get(17), landmarks[legs[g->leg].to].name, (int)((g->dist + FX / 2) / FX));
+    {
+        landmark_t lm;
+        char name[LANDMARK_NAME_LEN];
+
+        landmark_read(legs[g->leg].to, &lm, name);
+        printf(msg_get(17), name, (int)((g->dist + FX / 2) / FX));
+    }
     ui_pause();
 }
 
@@ -696,51 +714,85 @@ static long event_chance(const game_t *g, int k, int zone)
     return 0;
 }
 
+/* Shows an event's picture, from the events asset (src/events.dat), by its EVENT_ number. */
+static void show_event(const game_t *g, int ev)
+{
+    unsigned char scene = NO_SCENE;
+    int fd = open("ROM:events", O_RDONLY);
+
+    if (fd >= 0) {
+        lseek(fd, ev, SEEK_SET);
+        read(fd, &scene, 1);
+        close(fd);
+    }
+    if (scene != NO_SCENE)
+        show_scene(g, (scene_t)scene);
+}
+
 static void run_event(game_t *g, int k)
 {
     switch (k) {
     case 0:
+        show_event(g, EVENT_SNOW_BOUND);
         say(g, msg_get(18));
+        sound_event(EVENT_SNOW_BOUND);
         rest_days(g, ranged(1, 10));
         break;
     case 1:
-        if (g->tm > 2)
+        if (g->tm > 2) {
+            show_event(g, EVENT_SNAKE_BITE);
             afflict(g, member_pick(g), 2);
+            sound_event(EVENT_SNAKE_BITE);
+        }
         break;
     case 3:
+        show_event(g, EVENT_ILLNESS);
         illness(g);
+        sound_event(EVENT_ILLNESS);
         break;
     case 4: {
         grave_t here = g->grave;
 
+        show_event(g, EVENT_GRAVESITE);
         say(g, msg_get(19));
+        sound_event(EVENT_GRAVESITE);
         if (ui_ask_int(msg_get(20), 1, 2) == 1)
             show_grave(&here);
         g->has_grave = grave_next(g->leg, here.left, &g->grave);
         break;
     }
     case 5:
+        show_event(g, EVENT_INDIANS_FOOD);
         g->food += 30;
         say(g, msg_get(21));
+        sound_event(EVENT_INDIANS_FOOD);
         break;
     case 6:
         if (g->tm < 2) {
+            show_event(g, EVENT_BLIZZARD);
             say(g, msg_get(22));
+            sound_event(EVENT_BLIZZARD);
             g->as += FP(8.0);
             rest_days(g, 1);
         } else if (g->tm > 3) {
+            show_event(g, EVENT_THUNDERSTORM);
             say(g, msg_get(23));
+            sound_event(EVENT_THUNDERSTORM);
             g->ar += FP(1.0);
             rest_days(g, 1);
         }
         break;
     case 7:
         if (g->lm > 11 && g->tm < 5) {
+            show_event(g, EVENT_HEAVY_FOG);
             say(g, msg_get(24));
+            sound_event(EVENT_HEAVY_FOG);
             if (chance(FP(0.5)))
                 rest_days(g, 1);
         } else if (g->lm <= 11 && g->tm == 5) {
+            show_event(g, EVENT_HAIL_STORM);
             say(g, msg_get(25));
+            sound_event(EVENT_HAIL_STORM);
         }
         break;
     case 8:
@@ -956,6 +1008,7 @@ static void travel_week(game_t *g)
         if (d == WEEK_DAYS - 1 || g->dist <= 0 || g->np == 0 || blocked(g))
             break;
         draw_status(g, true);
+        printf(msg_get(160));
         ui_read_line(line, sizeof(line));
         if (line[0] == 'm' || line[0] == 'M')
             break;
@@ -976,6 +1029,7 @@ static void show_landmark_picture(game_t *g, scene_t scene, const char *text)
     show_scene(g, scene);
     ui_clear();
     puts(text);
+    sound_landmark(g->lm);
     ui_pause();
 }
 
@@ -983,7 +1037,10 @@ static void draw_status(game_t *g, bool daily)
 {
     int i, m = g->month, winter = (m == 10 || m == 11 || m <= 1);
     int next = legs[g->leg].to;
+    landmark_t lm;
+    char name[LANDMARK_NAME_LEN];
 
+    landmark_read(next, &lm, name);
     if (daily) {
         show_scene(g, SCENE_PRAIRIE);
     } else {
@@ -993,7 +1050,7 @@ static void draw_status(game_t *g, bool daily)
     ui_clear();
     printf(msg_get(33), month_name[m], g->day, g->year, (int)(g->miles / FX));
     printf(msg_get(34), weather_name[g->weather]);
-    printf(msg_get(35), landmarks[next].name, (int)((g->dist + FX / 2) / FX));
+    printf(msg_get(35), name, (int)((g->dist + FX / 2) / FX));
     printf(msg_get(36),
            health_word(g->health),
            g->pace == PACE_STEADY ? "Steady" : g->pace == PACE_STRENUOUS ? "Strenuous" : "Grueling",
@@ -1045,7 +1102,7 @@ static void matts_store(game_t *g)
     qty[5] = &part[1];
     qty[6] = &part[2];
 
-    scene_draw(SCENE_STORE, false);
+    scene_draw(SCENE_INDEPENDENCE_TOWN, false);
     for (;;) {
         bill = 0;
         for (i = 0; i < 7; i++)
@@ -1288,8 +1345,11 @@ static bool action_menu(game_t *g, bool at_landmark)
     for (;;) {
         action_t acts[11];
         int n = 0, c, i;
-        bool store = landmarks[g->lm].type == LM_STORE;
+        landmark_t here;
+        bool store;
 
+        landmark_read(g->lm, &here, NULL);
+        store = here.type == LM_STORE;
         if (g->said) {
             ui_pause();
             g->said = false;
@@ -1374,29 +1434,41 @@ static bool action_menu(game_t *g, bool at_landmark)
 
 static void announce_next(game_t *g)
 {
-    char buf[120];
+    char buf[120], name[LANDMARK_NAME_LEN];
+    landmark_t lm;
 
+    landmark_read(legs[g->leg].to, &lm, name);
     sprintf(buf, "The next landmark is %s, %d miles away.",
-            landmarks[legs[g->leg].to].name, (int)legs[g->leg].miles);
+            name, (int)legs[g->leg].miles);
     say(g, buf);
     grave_select(g);
 }
 
 static void start_leg(game_t *g)
 {
-    g->leg = landmarks[g->lm].leg;
+    landmark_t lm;
+
+    landmark_read(g->lm, &lm, NULL);
+    g->leg = lm.leg;
     g->dist = (long)legs[g->leg].miles * FX;
     announce_next(g);
 }
 
 static void split_choice(game_t *g)
 {
-    const landmark_t *lm = &landmarks[g->lm];
-    int a = lm->leg, b = lm->alt_leg;
+    landmark_t lm;
+    char na[LANDMARK_NAME_LEN], nb[LANDMARK_NAME_LEN];
+    int a, b;
+
+    landmark_read(g->lm, &lm, NULL);
+    a = lm.leg;
+    b = lm.alt_leg;
+    landmark_read(legs[a].to, &lm, na);
+    landmark_read(legs[b].to, &lm, nb);
 
     printf(msg_get(89));
-    printf(msg_get(90), landmarks[legs[a].to].name, (int)legs[a].miles);
-    printf(msg_get(91), landmarks[legs[b].to].name, (int)legs[b].miles);
+    printf(msg_get(90), na, (int)legs[a].miles);
+    printf(msg_get(91), nb, (int)legs[b].miles);
     g->leg = ui_ask_int(msg_get(92), 1, 2) == 1 ? a : b;
     g->dist = (long)legs[g->leg].miles * FX;
     announce_next(g);
@@ -1505,7 +1577,11 @@ static bool guide(game_t *g, const river_t *r, long depth)
 static void river_crossing(game_t *g, int lm)
 {
     const river_t *r = &rivers[river_index(lm)];
+    landmark_t here;
+    scene_t scene;
 
+    landmark_read(lm, &here, NULL);
+    scene = here.cross != NO_SCENE ? (scene_t)here.cross : SCENE_RIVER;
     sound_effect(SFX_RIVER);
 
     for (;;) {
@@ -1516,7 +1592,7 @@ static void river_crossing(game_t *g, int lm)
         int opt[4], n = 0, c, done = 0;
         const char *labels[4] = {"Ford the river", "Caulk the wagon and float it", "Take the ferry ($5)", "Hire the guide"};
 
-        show_scene(g, SCENE_RIVER);
+        show_scene(g, scene);
 
         printf(msg_get(111), width, tenths / 10, tenths % 10);
         opt[n++] = 0;
@@ -1615,35 +1691,33 @@ static bool dalles_choice(game_t *g)
 
 static bool arrive(game_t *g)
 {
-    char buf[80];
+    char buf[80], name[LANDMARK_NAME_LEN];
+    landmark_t lm;
 
     g->lm = legs[g->leg].to;
     g->visited |= 1UL << g->lm;
-    sprintf(buf, "You have reached %s.", landmarks[g->lm].name);
-    if (landmarks[g->lm].type == LM_STORE && g->lm != 0) {
-        sound_effect(SFX_FORT);
-        show_landmark_picture(g, SCENE_FORT, buf);
-    } else if (g->lm == CHIMNEY_ROCK) {
-        show_landmark_picture(g, SCENE_CHIMNEY, buf);
-    } else if (g->lm == INDEPENDENCE_ROCK) {
-        show_landmark_picture(g, SCENE_INDEPENDENCE, buf);
-    } else if (g->lm >= MOUNTAIN_FIRST && g->lm <= MOUNTAIN_LAST) {
-        show_landmark_picture(g, SCENE_MOUNTAIN, buf);
+    landmark_read(g->lm, &lm, name);
+    sprintf(buf, "You have reached %s.", name);
+    if (lm.arrive != NO_SCENE) {
+        if (lm.type == LM_STORE)
+            sound_effect(SFX_FORT);
+        show_landmark_picture(g, (scene_t)lm.arrive, buf);
     } else {
         say(g, buf);
+        sound_landmark(g->lm);
     }
     if (g->lm == LAST_LANDMARK) {
         g->won = true;
         return false;
     }
-    if (landmarks[g->lm].type == LM_RIVER) {
+    if (lm.type == LM_RIVER) {
         river_crossing(g, g->lm);
         if (g->np == 0)
             return false;
     }
     if (g->lm == DALLES)
         return dalles_choice(g);
-    if (landmarks[g->lm].alt_leg >= 0)
+    if (lm.alt_leg >= 0)
         split_choice(g);
     else
         start_leg(g);
@@ -1735,7 +1809,6 @@ static long points_for(const game_t *g)
 static void show_arrival(game_t *g, long pts)
 {
     const char *rating = pts >= 6000 ? "Trail guide" : pts >= 3000 ? "Adventurer" : "Greenhorn";
-
     ui_clear();
     printf(msg_get(133));
     printf(msg_get(134), month_name[g->month], g->day, g->year);

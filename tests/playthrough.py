@@ -44,16 +44,19 @@ def build():
     for name in os.listdir(os.path.join(ROOT, "src")):
         if name.endswith((".c", ".h")):
             shutil.copy(os.path.join(ROOT, "src", name), src)
-    for name in ("msg.c", "talk.c", "scene.c"):
-        path = os.path.join(src, name)
-        with open(path, encoding="utf-8") as f:
-            text = f.read()
-        with open(path, "w", encoding="utf-8", newline="\n") as f:
-            f.write(text.replace("ROM:msg", "rom_msg").replace("ROM:talk", "rom_talk")
-                    .replace("ROM:scenes", "rom_scenes"))
+    for name in os.listdir(src):
+        if name.endswith((".c", ".h")):
+            path = os.path.join(src, name)
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+            with open(path, "w", encoding="utf-8", newline="\n") as f:
+                f.write(text.replace("ROM:", "rom_"))
     shutil.copy(os.path.join(ROOT, "src", "messages.dat"), os.path.join(HOST, "rom_msg"))
     shutil.copy(os.path.join(ROOT, "src", "talk.txt"), os.path.join(HOST, "rom_talk"))
     shutil.copy(os.path.join(ROOT, "src", "scenes.dat"), os.path.join(HOST, "rom_scenes"))
+    shutil.copy(os.path.join(ROOT, "src", "tunes.dat"), os.path.join(HOST, "rom_tunes"))
+    shutil.copy(os.path.join(ROOT, "src", "landmarks.dat"), os.path.join(HOST, "rom_landmarks"))
+    shutil.copy(os.path.join(ROOT, "src", "events.dat"), os.path.join(HOST, "rom_events"))
     sources = [os.path.join(src, n) for n in ("game.c", "main.c", "scene.c", "sound.c", "talk.c", "ui.c", "msg.c")]
     tests = os.path.join(ROOT, "tests", "host")
     result = subprocess.run(

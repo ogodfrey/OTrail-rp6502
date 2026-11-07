@@ -20,40 +20,6 @@ The game follows the 1985 MECC version for the Apple II, first released by the
 Minnesota Educational Computing Consortium (MECC). This project is not
 affiliated with or endorsed by MECC.
 
-## Sources and licensing
-
-The rules, prices, distances, climate, river data, and event probabilities come
-from the reproduction specification in
-[OpenTrail](https://github.com/dannyheskett/opentrail) by Dan Heskett
-(`docs/OREGON-TRAIL-SPEC.md`). That spec was used as a reference for the game's
-facts and rules only. This project does not copy OpenTrail's code, its text,
-its data files, or MECC's machine code. The game's text and code are original.
-
-OpenTrail's code is MIT licensed. Its notice says that the original game's
-content is published with the permission of its rights holder, which is not
-granted to this project. Any reuse of that content needs its own permission.
-
-Some parts are approximations, listed under [Known differences](#known-differences).
-
-The talk-to-people quotes are paraphrases of the landmark dialogue in
-OpenTrail's `legacy/extracted/` text databases (`OREGON1.SEQ` and `OREGON2.SEQ`).
-The project owner states that they hold the rights to that material. The
-paraphrases keep each speaker's point of view and the landmark, but the words
-and speaker names are new, and the quotes are stored as the `talk` asset in
-`src/talk.txt`. The original text is not in this repository.
-
-The prairie, river crossing, fort, mountain, store, Chimney Rock, and Independence
-Rock scenes (`assets/prairie.png`, `assets/river.png`, `assets/fort.png`,
-`assets/mountain.png`, `assets/store.png`, `assets/chimney.png`, and
-`assets/independence.png`) were generated with Google AI (Gemini and Nano Banana 2) and
-then converted to the game's 16-color palette. The journey map (`assets/journey.png`)
-is from a journey dashboard image made with Google AI, with the painted wagon and
-its label removed. Google's Gemini API terms say
-Google does not claim ownership of generated content, and that the user is
-responsible for how it is used. Those terms depend on the Google product used,
-and some jurisdictions do not give copyright protection to purely AI-generated
-images, so reuse of these images may not be restricted by copyright.
-
 ## Requirements
 
 * [CMake](https://cmake.org/) 3.28 or newer
@@ -84,6 +50,11 @@ Both presets compile with `-Oz`. The ROM fills most of the 6502's RAM, and the
 other optimization levels do not fit. Do not change that flag. The Debug preset
 keeps line information with `-g1`, which the emulator uses for source-level
 debugging.
+
+Linking does not prove the stack fits. After linking, the build runs
+`assets/check_memory.py`, which prints the stack room left in RAM and fails if it is
+below `OREGON_MIN_STACK` (default 512 bytes). A ROM can link and still crash on the
+board when its stack runs into the static data.
 
 ## Running
 
@@ -180,7 +151,10 @@ fort, to 2.50 at Fort Walla Walla. Oxen sell singly at $20 each, with a cap of
 
 ### The trail
 
-The route has 18 landmarks and 2040 miles, split into 19 legs. Each leg has a
+The route has 18 landmarks and 2040 miles, split into 19 legs. The landmarks are
+data: `src/landmarks.txt` lists each one's name, type, legs, and pictures, and
+`assets/make_landmarks.py` writes them to `src/landmarks.dat`, which the game
+reads when it arrives at a landmark. Each leg has a
 length and a base speed. Speed is 20 miles a day up to Fort Laramie and 12 miles
 a day after it. The pace multiplies it: Steady is 1, Strenuous 1.5, and Grueling
 2. Speed falls with fewer than four oxen, with each sick or injured party member,
@@ -379,10 +353,14 @@ are safer choices there.
 
 The sound uses the OPL2 FM chip, which is mapped to a page of XRAM at
 `XRAM_OPL` (`$E000`). A short banjo tune plays when the title screen loads.
-Sound effects play for the river crossing, arriving at a fort, and the arrival at
-Willamette Valley. On each travel day when the wagon moves, a short creak plays.
+Sound effects play for the river crossing and arriving at a fort. On each travel day when the wagon moves, a
+short creak plays. Each landmark from the Kansas River on has its own banjo tune, played when
+you arrive; the tunes are in `src/tunes.dat` and are read from disk on arrival. Each of the
+six forts has its own banjo march, which follows the fort fanfare. When you reach
+Willamette Valley, an upbeat banjo ditty plays.
 When the weekly summary appears, a short banjo riff plays. When a party member
-dies, a sad banjo riff in a minor key plays. The title tune takes about five seconds
+dies, a sad banjo riff in a minor key plays. When a wagon breaks, the broken wagon
+picture shows and a clunky banjo riff plays. The title tune takes about five seconds
 and then the prompt appears. In the web player, the sound starts with the first
 click on the game, which is why the player is set to `autoplay: 'off'` in
 `CMakeLists.txt`.
@@ -394,51 +372,68 @@ bitmap, and the console runs in VGA mode 0 below it, with 80 columns and 22 rows
 The prairie shows on each travel day, and the journey map shows on the weekly
 summary.
 
-There are eight scenes: the prairie, the mountains, a river crossing, a fort, the
-store, the journey map, Chimney Rock, and Independence Rock. Each is a 640x128
+There are twenty-seven scenes: the prairie, the mountains, a river crossing, a fort, the
+store, the journey map, Chimney Rock, Independence Rock, Soda Springs, the Blue
+Mountains, a broken wagon, the Willamette Valley, the Independence town (Matt's store),
+the Kansas River and Big Blue River crossings, Fort Kearney (also shown at Fort Laramie), South Pass, the Green River crossing, Snow Bound, Snake Bite, Illness, the Gravesite, Indians Help Find Food, The Blizzard, the Thunderstorm, Heavy Fog, and Hail Storm. Each is a 640x128
 picture in a 16-color palette. Except for the journey map, they are paintings
 converted to the game palette, kept in `assets/`. The journey map is the dashboard
 mockup's map with its painted wagon and "T: 740 mi" label removed, and the wagon
-marker is drawn over it at run time. The Chimney Rock and Independence Rock
-paintings are cropped to a 5:1 strip from wider images, so the wagon is cut off.
+marker is drawn over it at run time. The Chimney Rock, Independence Rock, Soda
+Springs, and Blue Mountains paintings are cropped to a 5:1 strip from wider images, so the wagon is cut off.
 `assets/make_journey.py` makes the map art and the route, and
 `assets/make_scenes.py` packs the scenes and the route into `src/scenes.dat`.
-The river picture shows at each river crossing, and the fort picture when you
+The event pictures are listed in `src/events.txt`, and `assets/make_events.py`
+writes them to `src/events.dat`, so new event art needs no code change.
+The river picture shows at each river crossing, except the Kansas River, Big Blue River,
+and Green River, which have their own pictures, and the fort picture when you
 reach a fort, where it stays until you press Enter. Chimney Rock and Independence
-Rock show their pictures the same way, and the mountains from South Pass to Green
-River show the mountain picture.
+Rock show their pictures the same way, South Pass has its own picture, and Green
+River shows the mountain picture.
 The travel scenes have the wagon and its oxen in front, and the store has its
 row of items. The winter scenes use the same pictures with a second palette,
 which turns the sky and the ground white and blue. The pictures are stored in
-`src/scenes.dat` as run-length pixels, and the palettes and the route are in the
+`src/scenes.dat` as LZ-packed pixels, and the palettes and the route are in the
 same file.
 
 ## Source layout
 
-| Path                      | Purpose                                                                      |
-| ------------------------- | ---------------------------------------------------------------------------- |
-| `src/main.c`              | Video setup, title screen, and the top 10 file.                              |
-| `src/game.c`, `game.h`    | Rules: party, supplies, weather, health, events, rivers, trade, and scoring. |
-| `src/scene.c`, `scene.h`  | Decodes scenes into the XRAM bitmap and sets the palette.                    |
-| `src/talk.c`, `talk.h`    | Talk to people: reads the talk asset and wraps each quote.                   |
-| `src/talk.txt`            | The talk asset: landmark, speaker, and quote on each line.                   |
-| `src/msg.c`, `msg.h`      | Looks up a game message in the msg asset by its number.                      |
-| `src/messages.dat`        | The msg asset: 80-byte records, one message each. Built from the game source.|
-| `src/sound.c`, `sound.h`  | OPL2 sound: the title tune, banjo riffs for the weekly summary and deaths, and short effects for the river, fort, and arrival. |
-| `src/ui.c`, `ui.h`        | Console helpers: line input, numbered prompts, pauses, and money formatting. |
-| `src/xram.h`              | XRAM map: scene config, palette, bitmap, and VGA macros.                     |
-| `src/help.txt`            | The help text stored in the ROM as the `help` asset.                         |
-| `src/scenes.dat`          | The scenes asset: the six pictures, both palettes, and the journey route.    |
-| `assets/make_scenes.py`   | Packs the scene pictures and the journey route into `src/scenes.dat`.        |
-| `assets/make_journey.py`  | Makes the journey map art and the route from the dashboard image.            |
-| `tests/playtest.py`       | The emulator smoke test.                                                     |
-| `tests/playthrough.py`    | The host playthrough: plays a full game and saves the answers.               |
-| `tests/playthrough.txt`   | The answers from the saved playthrough, used by `--replay`.                  |
-| `tests/render_scenes.py`  | Decodes scenes on the host and compares them with the art.                   |
-| `tests/host/`             | Host shim: RIA and XRAM stubs for building `src/` with gcc.                  |
-| `CMakeLists.txt`          | The `oregon` ROM target and its sources.                                     |
-| `CMakePresets.json`       | The llvm-mos Debug and Release presets.                                      |
-| `tools/`                  | The SDK scripts. `rp6502.cmake` fetches the emulator and tools.              |
+| Path                         | Purpose                                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------- |
+| `src/main.c`                 | Video setup, title screen, and the high scores.                                                   |
+| `src/game.c`, `src/game.h`   | Rules: party, supplies, weather, health, events, rivers, trade, and scoring.                      |
+| `src/scene.c`, `src/scene.h` | Decodes scenes into the XRAM bitmap and sets the palette.                                         |
+| `src/talk.c`, `src/talk.h`   | Talk to people: reads the talk asset and wraps each quote.                                        |
+| `src/talk.txt`               | The talk asset: landmark, speaker, and quote on each line.                                        |
+| `src/msg.c`, `src/msg.h`     | Looks up a game message in the msg asset by its number.                                           |
+| `src/messages.dat`           | The msg asset: 80-byte records, one message each.                                                 |
+| `src/sound.c`, `src/sound.h` | OPL2 sound: the title tune, banjo riffs, landmark tunes, the ditty, and short effects.            |
+| `src/ui.c`, `src/ui.h`       | Console helpers: line input, numbered prompts, pauses, and money formatting.                      |
+| `src/xram.h`                 | XRAM map: scene config, palette, bitmap, and VGA macros.                                          |
+| `src/help.txt`               | The help text stored in the ROM as the `help` asset.                                              |
+| `src/scenes.dat`             | The scenes asset: the twenty-seven pictures, both palettes, and the journey route.                |
+| `src/tunes.dat`              | The tunes asset: landmark and event tunes, read from disk when they play.                         |
+| `src/landmarks.txt`          | The landmarks, one per line: name, type, legs, and the pictures at each.                          |
+| `src/landmarks.dat`          | The landmarks asset: 24-byte records, read from disk on arrival.                                  |
+| `src/events.txt`             | The event pictures, one per line in event order: event and picture.                               |
+| `src/events.dat`             | The events asset: one picture number per event, read from disk when an event happens.            |
+| `assets/*.png`               | The painted scenes, converted to the game palette. The journey map is the dashboard mockup's map. |
+| `assets/journey_route.bin`   | The 24-point route the wagon marker follows on the journey map.                                   |
+| `assets/make_scenes.py`      | Packs the scene pictures and the journey route into `src/scenes.dat`.                             |
+| `assets/make_tunes.py`       | Writes the landmark tunes into `src/tunes.dat`.                                                   |
+| `assets/make_landmarks.py`   | Writes the landmarks from `src/landmarks.txt` into `src/landmarks.dat`.                           |
+| `assets/make_events.py`      | Writes the event pictures from `src/events.txt` into `src/events.dat`.                            |
+| `assets/check_memory.py`     | Checks the stack room after linking. Fails the build below `OREGON_MIN_STACK` bytes.              |
+| `assets/make_journey.py`     | Makes the journey map art and the route from the dashboard image.                                 |
+| `tests/playtest.py`          | The emulator smoke test.                                                                          |
+| `tests/playthrough.py`       | The host playthrough: plays a full game and saves the answers.                                    |
+| `tests/playthrough.txt`      | The answers from the saved playthrough, used by `--replay`.                                       |
+| `tests/render_scenes.py`     | Decodes scenes on the host and compares them with the art.                                        |
+| `tests/host/`                | Host shim: RIA, XRAM, and scene stubs for building `src/` with gcc.                               |
+| `.github/workflows/web.yml`  | The GitHub Pages workflow that builds the web player.                                             |
+| `CMakeLists.txt`             | The `oregon` ROM target and its sources.                                                          |
+| `CMakePresets.json`          | The llvm-mos Debug and Release presets.                                                           |
+| `tools/`                     | The SDK scripts. `rp6502.cmake` fetches the emulator and tools.                                   |
 
 The constants for prices, mileages, climate, rivers, and event chances are at the
 top of `src/game.c`. The rules use fixed-point integers instead of floating
@@ -457,3 +452,41 @@ cmake -P tools/rp6502.cmake
 
 Commit `tools/` with the project. The `build/` directory and `.rp6502` are
 ignored by git.
+
+## Sources and licensing
+
+The rules, prices, distances, climate, river data, and event probabilities come
+from the reproduction specification in
+[OpenTrail](https://github.com/dannyheskett/opentrail) by Dan Heskett
+(`docs/OREGON-TRAIL-SPEC.md`). That spec was used as a reference for the game's
+facts and rules only. This project does not copy OpenTrail's code, its text,
+its data files, or MECC's machine code. The game's text and code are original.
+
+OpenTrail's code is MIT licensed. Its notice says that the original game's
+content is published with the permission of its rights holder, which is not
+granted to this project. Any reuse of that content needs its own permission.
+
+Some parts are approximations, listed under [Known differences](#known-differences).
+
+The talk-to-people quotes are paraphrases of the landmark dialogue in
+OpenTrail's `legacy/extracted/` text databases (`OREGON1.SEQ` and `OREGON2.SEQ`).
+The project owner states that they hold the rights to that material. The
+paraphrases keep each speaker's point of view and the landmark, but the words
+and speaker names are new, and the quotes are stored as the `talk` asset in
+`src/talk.txt`. The original text is not in this repository.
+
+The prairie, river crossing, fort, mountain, store, Chimney Rock, Independence Rock,
+Soda Springs, Blue Mountains, broken wagon, Willamette Valley, Independence town, Kansas
+River, and Big Blue River scenes (`assets/prairie.png`, `assets/river.png`, `assets/fort.png`,
+`assets/mountain.png`, `assets/store.png`, `assets/chimney.png`,
+`assets/independence.png`, `assets/soda_springs.png`, `assets/blue_mountains.png`,
+`assets/broken_wagon.png`, `assets/willamette_valley.png`, and
+`assets/independence_town.png`, `assets/kansas_river.png`, `assets/big_blue_river.png`, and
+`assets/fort_kearney.png`, `assets/south_pass.png`, `assets/green_river.png`, `assets/snow_bound.png`, `assets/snake_bite.png`, `assets/illness.png`, `assets/gravesite.png`, `assets/indians_food.png`, `assets/blizzard.png`, `assets/thunderstorm.png`, `assets/heavy_fog.png`, and `assets/hail_storm.png`) were generated with Google AI (Gemini and Nano
+Banana 2) and then converted to the game's 16-color palette. The journey map
+(`assets/journey.png`) is from a journey dashboard image made with Google AI, with
+the painted wagon and its label removed. Google's Gemini API terms say
+Google does not claim ownership of generated content, and that the user is
+responsible for how it is used. Those terms depend on the Google product used,
+and some jurisdictions do not give copyright protection to purely AI-generated
+images, so reuse of these images may not be restricted by copyright.

@@ -1,0 +1,25 @@
+# The landmarks of the trail, one per line in route order, from Independence (0) to
+# Willamette Valley (17). make_landmarks.py writes them to src/landmarks.dat.
+#
+# Columns: name | type | leg | alternate leg | arrival picture | crossing picture
+# type: store, river, or other. leg: the leg that leaves this landmark. alternate leg:
+# the second leg, for a split, or -. Pictures are scene names from assets/make_scenes.py,
+# or - for none. The crossing picture is shown at a river crossing.
+Independence | store | 0 | - | - | -
+Kansas River | river | 1 | - | - | kansas_river
+Big Blue River | river | 2 | - | - | big_blue_river
+Fort Kearney | store | 3 | - | fort_kearney | -
+Chimney Rock | other | 4 | - | chimney | -
+Fort Laramie | store | 5 | - | fort_kearney | -
+Independence Rock | other | 6 | - | independence | -
+South Pass | other | 7 | 8 | south_pass | -
+Fort Bridger | store | 9 | - | fort | -
+Green River | river | 10 | - | mountain | green_river
+Soda Springs | other | 11 | - | soda_springs | -
+Fort Hall | store | 12 | - | fort | -
+Snake River | river | 13 | - | - | river
+Fort Boise | store | 14 | - | fort | -
+Blue Mountains | other | 15 | 16 | blue_mountains | -
+Fort Walla Walla | store | 17 | - | fort | -
+The Dalles | other | 18 | - | - | -
+Willamette Valley | other | 0 | - | willamette_valley | -
