@@ -1,0 +1,94 @@
+"""Writes the landmark tunes to src/tunes.dat, the tunes asset that sound_landmark in
+src/sound.c reads on arrival.
+
+The file starts with one three-byte entry for each of the 18 landmarks: the offset of
+its notes in the file, as 16 bits little-endian, and the number of notes. Each note is
+three bytes: the frequency in hertz, as 16 bits little-endian, then the frames to hold
+it. Sixty frames is one second, and a frequency of 0 is a rest. Independence and
+Willamette Valley have no tune here: the victory ditty plays at Willamette Valley.
+
+Usage: python assets/make_tunes.py
+"""
+
+import os
+import struct
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUT = os.path.join(ROOT, "src", "tunes.dat")
+LANDMARKS = 18
+EVENTS = 9
+EFFECTS = 7
+ENTRIES = LANDMARKS + EVENTS + EFFECTS
+ENTRY = struct.Struct("<HB")
+NOTE = struct.Struct("<HB")
+
+# Each tune is in the banjo voice, with its own key, tempo, and rhythm.
+TUNES = {
+    1: [(392, 8), (494, 8), (587, 12), (494, 8), (392, 8), (330, 8), (392, 16), (494, 8), (587, 8), (659, 12), (587, 8), (494, 8), (392, 20)],
+    2: [(294, 10), (370, 10), (440, 10), (554, 10), (440, 10), (370, 10), (330, 10), (294, 20), (220, 10), (294, 10), (370, 20)],
+    3: [(523, 6), (523, 6), (392, 6), (523, 6), (659, 12), (587, 6), (523, 6), (587, 6), (659, 6), (523, 6), (392, 6), (392, 6), (523, 18)],
+    4: [(440, 12), (494, 8), (523, 8), (587, 12), (659, 12), (587, 8), (523, 8), (494, 8), (440, 24)],
+    5: [(587, 6), (587, 6), (740, 6), (587, 6), (494, 12), (440, 6), (494, 6), (587, 6), (659, 6), (587, 6), (740, 12), (587, 6), (494, 6), (440, 6), (587, 18)],
+    6: [(392, 20), (440, 20), (523, 20), (587, 30), (523, 20), (440, 20), (392, 40)],
+    7: [(349, 8), (392, 8), (440, 8), (523, 8), (587, 8), (698, 8), (587, 8), (523, 16), (440, 8), (523, 24)],
+    8: [(392, 6), (494, 6), (587, 6), (392, 6), (494, 12), (587, 6), (494, 6), (392, 6), (330, 6), (392, 6), (494, 12), (587, 6), (659, 6), (587, 6), (494, 6), (392, 18)],
+    9: [(440, 12), (523, 12), (587, 12), (523, 12), (440, 12), (392, 12), (440, 12), (523, 12), (659, 12), (587, 12), (523, 12), (440, 24)],
+    10: [(523, 4), (0, 4), (698, 4), (0, 4), (659, 4), (0, 4), (523, 4), (0, 4), (587, 4), (0, 4), (659, 4), (0, 4), (523, 20)],
+    11: [(440, 6), (554, 6), (659, 6), (440, 6), (554, 12), (659, 6), (554, 6), (440, 6), (370, 6), (440, 6), (554, 12), (659, 6), (740, 6), (659, 6), (554, 6), (440, 18)],
+    12: [(659, 4), (587, 4), (523, 4), (494, 4), (440, 4), (392, 4), (330, 4), (294, 4), (330, 4), (392, 4), (440, 4), (494, 4), (523, 4), (587, 4), (659, 4), (659, 20)],
+    13: [(349, 6), (440, 6), (523, 6), (349, 6), (440, 12), (523, 6), (440, 6), (349, 6), (330, 6), (349, 6), (440, 12), (523, 6), (587, 6), (523, 6), (440, 6), (349, 18)],
+    14: [(440, 24), (392, 16), (349, 16), (330, 24), (294, 16), (330, 16), (440, 40)],
+    15: [(330, 6), (392, 6), (494, 6), (330, 6), (392, 12), (494, 6), (392, 6), (330, 6), (294, 6), (330, 6), (392, 12), (494, 6), (523, 6), (494, 6), (392, 6), (330, 18)],
+    16: [(523, 8), (392, 8), (311, 8), (262, 8), (311, 8), (392, 8), (523, 12), (587, 8), (523, 8), (392, 24)],
+    # Snow Bound is the first event tune: an event entry follows the landmarks.
+    18: [(220, 20), (0, 8), (262, 12), (330, 12), (294, 16), (0, 8), (262, 12), (220, 36)],
+    # Snake Bite: quick, tense stabs that drop to a low thud.
+    19: [(330, 4), (0, 4), (330, 4), (0, 4), (311, 6), (0, 4), (262, 6), (233, 6), (220, 30)],
+    # Illness: a slow, wavering tune that sinks into the minor.
+    20: [(294, 20), (277, 20), (262, 24), (247, 12), (0, 8), (220, 36)],
+    # Gravesite: a slow, hushed tune that rests on a low note.
+    21: [(392, 24), (0, 6), (349, 24), (330, 18), (294, 12), (0, 8), (262, 36)],
+    # Indians help find food: a bright, friendly tune that rises and settles.
+    22: [(392, 8), (494, 8), (523, 8), (587, 12), (0, 4), (523, 8), (587, 8), (659, 8), (784, 24)],
+    # Blizzard: a low, howling tune that slides down and fades into the wind.
+    23: [(196, 10), (0, 4), (220, 10), (196, 10), (175, 14), (0, 6), (165, 30)],
+    # Thunderstorm: a rumbling low start, then a bright flash of notes that rolls away.
+    24: [(110, 12), (0, 4), (147, 8), (523, 6), (659, 6), (784, 6), (659, 6), (523, 6), (440, 6), (392, 6), (330, 18)],
+    # Heavy fog: a hushed, wandering tune with long gaps, as if feeling the way forward.
+    25: [(330, 16), (0, 8), (294, 12), (262, 12), (0, 10), (294, 12), (262, 16), (220, 36)],
+    # Hail storm: sharp, quick ticks like stones on a wagon cover, then a rolling finish.
+    26: [(784, 3), (0, 3), (698, 3), (0, 3), (784, 3), (0, 6), (659, 3), (0, 3), (523, 3), (0, 3), (587, 3), (0, 6), (392, 24)],
+    # Sound effects: river (27), fort (28), creak (29), death (30), arrival ditty (31),
+    # weekly riff (32), broken wagon (33). The death riff is sad, in a minor key.
+    27: [(392, 4), (349, 4), (330, 4), (294, 6)],
+    28: [(523, 6), (659, 6), (698, 6), (698, 6), (659, 12)],
+    29: [(220, 2), (196, 2), (233, 2), (185, 2)],
+    30: [(440, 16), (392, 16), (349, 16), (330, 16), (294, 40)],
+    31: [(392, 8), (494, 8), (587, 8), (494, 8), (587, 8), (659, 8), (587, 8), (494, 8),
+         (440, 8), (494, 8), (587, 8), (659, 8), (698, 8), (659, 8), (587, 8), (494, 8), (392, 32)],
+    32: [(392, 6), (494, 6), (587, 6), (494, 6), (392, 6), (440, 6), (523, 6), (587, 12)],
+    33: [(330, 8), (0, 6), (330, 8), (0, 6), (294, 8), (0, 6), (262, 24)],
+}
+
+
+def main():
+    notes_out = bytearray()
+    entries = bytearray()
+    offset = ENTRY.size * ENTRIES
+    for index in range(ENTRIES):
+        notes = TUNES.get(index, [])
+        if len(notes) > 20:
+            raise SystemExit("tune %d has more than 20 notes" % index)
+        entries += ENTRY.pack(offset, len(notes))
+        for hz, frames in notes:
+            if frames > 255 or hz > 65535:
+                raise SystemExit("note out of range in tune %d" % index)
+            notes_out += NOTE.pack(hz, frames)
+        offset += NOTE.size * len(notes)
+    with open(OUT, "wb") as f:
+        f.write(bytes(entries + notes_out))
+    print("wrote %s (%d bytes)" % (OUT, len(entries) + len(notes_out)))
+
+
+if __name__ == "__main__":
+    main()

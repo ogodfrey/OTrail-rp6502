@@ -1,5 +1,8 @@
+#include <fcntl.h>
 #include <rp6502.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <unistd.h>
 #include "sound.h"
 #include "xram.h"
 
@@ -16,7 +19,7 @@
 typedef struct
 {
     unsigned hz;
-    unsigned frames;
+    unsigned char frames;
 } note_t;
 
 /* Sixty frames is one second, the rate of VSYNC. */
@@ -24,15 +27,6 @@ static const note_t title_tune[] = {
     {330, 18}, {392, 18}, {440, 18}, {392, 18}, {330, 18}, {294, 18}, {262, 36},
     {330, 18}, {392, 18}, {523, 36}, {440, 18}, {392, 36},
 };
-static const note_t river_fx[] = {{392, 4}, {349, 4}, {330, 4}, {294, 6}};
-static const note_t fort_fx[] = {{523, 6}, {659, 6}, {698, 6}, {698, 6}, {659, 12}};
-static const note_t arrive_fx[] = {{392, 10}, {523, 10}, {659, 10}, {523, 10}, {659, 10}, {698, 40}};
-/* A short wobble of stepped pitches, which sounds like a wheel turning. */
-static const note_t creak_fx[] = {{220, 2}, {196, 2}, {233, 2}, {185, 2}};
-/* The riffs play on the banjo channel, which the title tune uses. The sad one
-   falls in a minor key. */
-static const note_t weekly_riff[] = {{392, 6}, {494, 6}, {587, 6}, {494, 6}, {392, 6}, {440, 6}, {523, 6}, {587, 12}};
-static const note_t sad_riff[] = {{440, 16}, {392, 16}, {349, 16}, {330, 16}, {294, 40}};
 
 static void opl_poke(unsigned reg, unsigned char val)
 {
@@ -100,7 +94,8 @@ static void play(unsigned c, const note_t *notes, unsigned count)
     unsigned i;
 
     for (i = 0; i < count; i++) {
-        note_on(c, notes[i].hz);
+        if (notes[i].hz)
+            note_on(c, notes[i].hz);
         wait_frames(notes[i].frames);
         note_off(c);
     }
@@ -118,26 +113,87 @@ void sound_title(void)
     play(TITLE_CHANNEL, title_tune, sizeof title_tune / sizeof title_tune[0]);
 }
 
+/* Plays the tune of a landmark, read from the ROM:tunes asset (src/tunes.dat). Its
+   entry is three bytes, the offset and count of the notes, and each note is three bytes. */
+#define LANDMARK_COUNT 18
+#define EVENT_COUNT 9
+#define EFFECT_COUNT 7
+#define EFFECT_BASE (LANDMARK_COUNT + EVENT_COUNT)
+#define TUNE_ENTRIES (EFFECT_BASE + EFFECT_COUNT)
+#define MAX_TUNE_NOTES 20
+#define TUNE_ENTRY_BYTES 3
+#define TUNE_NOTE_BYTES 3
+
+static void play_tune(unsigned c, unsigned index)
+{
+    unsigned char entry[TUNE_ENTRY_BYTES], note[TUNE_NOTE_BYTES];
+    unsigned offset, count, i;
+    int fd;
+
+    if (index >= TUNE_ENTRIES)
+        return;
+    fd = open("ROM:tunes", O_RDONLY);
+    if (fd < 0)
+        return;
+    lseek(fd, (long)(index * TUNE_ENTRY_BYTES), SEEK_SET);
+    if (read(fd, entry, sizeof entry) != sizeof entry) {
+        close(fd);
+        return;
+    }
+    offset = entry[0] | ((unsigned)entry[1] << 8);
+    count = entry[2];
+    if (count == 0 || count > MAX_TUNE_NOTES) {
+        close(fd);
+        return;
+    }
+    lseek(fd, (long)offset, SEEK_SET);
+    for (i = 0; i < count; i++) {
+        unsigned hz;
+
+        if (read(fd, note, sizeof note) != sizeof note)
+            break;
+        hz = note[0] | ((unsigned)note[1] << 8);
+        if (hz)
+            note_on(c, hz);
+        wait_frames(note[2]);
+        note_off(c);
+    }
+    close(fd);
+}
+
+void sound_landmark(unsigned index)
+{
+    play_tune(TITLE_CHANNEL, index);
+}
+
+void sound_event(unsigned index)
+{
+    play_tune(TITLE_CHANNEL, LANDMARK_COUNT + index);
+}
+
 void sound_effect(sfx_t sfx)
 {
     switch (sfx) {
     case SFX_RIVER:
-        play(EFFECT_CHANNEL, river_fx, sizeof river_fx / sizeof river_fx[0]);
+        play_tune(EFFECT_CHANNEL, EFFECT_BASE + 0);
         break;
     case SFX_FORT:
-        play(EFFECT_CHANNEL, fort_fx, sizeof fort_fx / sizeof fort_fx[0]);
-        break;
-    case SFX_DEATH:
-        play(TITLE_CHANNEL, sad_riff, sizeof sad_riff / sizeof sad_riff[0]);
-        break;
-    case SFX_ARRIVE:
-        play(EFFECT_CHANNEL, arrive_fx, sizeof arrive_fx / sizeof arrive_fx[0]);
+        play_tune(EFFECT_CHANNEL, EFFECT_BASE + 1);
         break;
     case SFX_CREAK:
-        play(EFFECT_CHANNEL, creak_fx, sizeof creak_fx / sizeof creak_fx[0]);
+        play_tune(EFFECT_CHANNEL, EFFECT_BASE + 2);
+        break;
+    case SFX_DEATH:
+        play_tune(TITLE_CHANNEL, EFFECT_BASE + 3);
+        break;
+    case SFX_ARRIVE:
+        play_tune(TITLE_CHANNEL, EFFECT_BASE + 4);
         break;
     case SFX_WEEKLY:
-        play(TITLE_CHANNEL, weekly_riff, sizeof weekly_riff / sizeof weekly_riff[0]);
+        play_tune(TITLE_CHANNEL, EFFECT_BASE + 5);
+        break;
+    case SFX_BROKEN:
+        play_tune(TITLE_CHANNEL, EFFECT_BASE + 6);
         break;
     }
 }
