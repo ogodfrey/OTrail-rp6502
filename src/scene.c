@@ -2,10 +2,6 @@
 #include <rp6502.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <rp6502.h>
-#include <stdio.h>
-#include <unistd.h>
 #include "scene.h"
 #include "xram.h"
 
@@ -28,6 +24,11 @@ static unsigned char copy_buf[16];
 static unsigned pos;
 static unsigned literal, match_len, match_dist;
 static unsigned char dist_bytes;
+
+/* The scene now in XRAM, so a repeat of it is not decoded again. The journey map's
+   wagon marker is undone from under[], which holds the pixels it covered. */
+static int shown = -1;
+static bool shown_winter;
 
 /* Unpacks the n bytes in buf into XRAM. The state carries over from one chunk
    to the next, since a token, a literal, or a distance can cross the end of a chunk.
@@ -83,10 +84,14 @@ static void unpack(unsigned n)
 
 void scene_draw(scene_t scene, bool winter)
 {
-    int fd = open("ROM:scenes", O_RDONLY);
+    int fd;
     unsigned long start;
     int n;
 
+    if (scene == shown && winter == shown_winter)
+        return;
+    shown = -1;
+    fd = open("ROM:scenes", O_RDONLY);
     if (fd < 0)
         return;
     lseek(fd, 4L * scene, SEEK_SET);
@@ -106,6 +111,8 @@ void scene_draw(scene_t scene, bool winter)
     while (pos < SCENE_BYTES && (n = read(fd, buf, sizeof buf)) > 0)
         unpack((unsigned)n);
     close(fd);
+    shown = scene;
+    shown_winter = winter;
 }
 
 /* Palette indexes of the marker: the ink border and the white center. */
@@ -161,6 +168,8 @@ void scene_journey_marker(unsigned miles)
     x = x0 + (((x1 - x0) * (int)(frac >> 3)) >> 5);
     y = y0 + (((y1 - y0) * (int)(frac >> 3)) >> 5);
 
+    if (shown != (int)SCENE_JOURNEY)
+        return;
     bx = x / 2 - 2;
     for (i = 0; i < 8; i++) {
         row = y - 4 + (int)i;
@@ -172,4 +181,5 @@ void scene_journey_marker(unsigned miles)
             fill_bytes(row, bx + 3, 1, MARK_INK);
         }
     }
+    shown = -1;
 }
