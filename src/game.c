@@ -503,7 +503,7 @@ static void illness(game_t *g)
 
     g->hr = FP(20.0);
     if (g->party[i].affl >= 0) {
-        member_die(g, i, "illness");
+        member_die(g, i, g->party[i].affl >= 3 ? affliction_name[g->party[i].affl] : "illness");
         return;
     }
     afflict(g, i, ranged(3, 8));
