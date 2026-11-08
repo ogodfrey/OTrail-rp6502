@@ -37,6 +37,7 @@
 #define MSG_ACTION 172
 #define MSG_LEADER_NAME 183
 #define AFFLICTION_DYSENTERY 7
+#define MSG_STORE_LABEL 184
 #define FERRY_CENTS 500L
 #define TOLL_BASE_CENTS 500L
 #define TOLL_PER_OX_CENTS 50L
@@ -86,7 +87,7 @@ typedef struct {
 #define NO_SCENE 255
 
 typedef struct {
-    uint16_t miles;
+    uint8_t miles;
     uint8_t per_day;
     uint8_t to;
 } leg_t;
@@ -211,7 +212,7 @@ static const int8_t climate_temp[5][12] = {
     {-1, 4, 12, 23, 32, 41, 49, 47, 37, 26, 11, 1},
     {10, 16, 22, 30, 38, 45, 54, 52, 43, 32, 20, 12},
 };
-static const uint16_t climate_rain[5][12] = {
+static const uint8_t climate_rain[5][12] = {
     {39, 42, 78, 99, 144, 144, 117, 120, 126, 90, 57, 45},
     {15, 15, 30, 63, 90, 99, 81, 66, 48, 30, 15, 15},
     {15, 15, 27, 48, 63, 39, 30, 18, 27, 27, 21, 15},
@@ -219,7 +220,7 @@ static const uint16_t climate_rain[5][12] = {
     {45, 39, 39, 36, 36, 27, 9, 9, 18, 30, 39, 42},
 };
 
-static const int month_len[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+static const uint8_t month_len[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 static const char *const month_name[12] = {
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"};
@@ -240,8 +241,8 @@ static const char *const default_names[PARTY_SIZE - 1] = {"Amos", "Clara", "Ned"
 static const char *const item_label[ITEM_COUNT] = {
     "Oxen (each)", "Clothing (set)", "Ammo (box of 20)",
     "Wagon wheel", "Wagon axle", "Wagon tongue", "Food (per pound)"};
-static const long fort_base_cents[ITEM_COUNT] = {2000L, 1000L, 200L, 1000L, 1000L, 1000L, 20L};
-static const long trade_cents[ITEM_COUNT] = {2000L, 1000L, 10L, 1000L, 1000L, 1000L, 20L};
+static const uint16_t fort_base_cents[ITEM_COUNT] = {2000, 1000, 200, 1000, 1000, 1000, 20};
+static const uint16_t trade_cents[ITEM_COUNT] = {2000, 1000, 10, 1000, 1000, 1000, 20};
 static const char *const item_plural[ITEM_COUNT] = {
     "oxen", "sets of clothing", "bullets", "wagon wheels", "wagon axles", "wagon tongues", "pounds of food"};
 static const char *const item_singular[ITEM_COUNT] = {
@@ -1111,11 +1112,10 @@ static void matts_store(game_t *g)
     int yoke = 0, food = 0, cloth = 0, ammo = 0, part[PART_COUNT] = {0, 0, 0};
     int choice, i;
     long bill;
-    const char *labels[7] = {"Oxen, yoke of two", "Food (per pound)", "Clothing (set)",
-                             "Ammo (box of 20)", "Wagon wheel", "Wagon axle", "Wagon tongue"};
     int limits[7] = {9, 2000, 99, 99, PART_CAP, PART_CAP, PART_CAP};
     long unit[7] = {4000L, 20L, 1000L, 200L, 1000L, 1000L, 1000L};
     int *qty[7];
+    char label[20];
 
     qty[0] = &yoke;
     qty[1] = &food;
@@ -1135,7 +1135,8 @@ static void matts_store(game_t *g)
         ui_print_money(g->money);
         printf(msg_get(47));
         for (i = 0; i < 7; i++) {
-            printf(msg_get(48), i + 1, labels[i]);
+            strcpy(label, msg_get(MSG_STORE_LABEL + i));
+            printf(msg_get(48), i + 1, label);
             ui_print_money(unit[i]);
             printf(msg_get(49), *qty[i]);
         }
@@ -1183,7 +1184,7 @@ static void fort_store(game_t *g)
         for (i = 0; i < ITEM_COUNT; i++) {
             item = store_order[i];
             printf(msg_get(58), i + 1, item_label[item]);
-            ui_print_money(fort_base_cents[item] * mult / 4L);
+            ui_print_money((long)fort_base_cents[item] * mult / 4L);
             printf(msg_get(59));
         }
         printf(msg_get(60));
@@ -1191,7 +1192,7 @@ static void fort_store(game_t *g)
         if (choice == 0)
             return;
         item = store_order[choice - 1];
-        price = fort_base_cents[item] * mult / 4L;
+        price = (long)fort_base_cents[item] * mult / 4L;
         afford = (int)(g->money / price);
         if (afford == 0) {
             say(g, msg_get(62));

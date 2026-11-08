@@ -182,3 +182,10 @@ Buy supplies
 Talk to people
 Give up the journey
 The party leader needs a name.\n
+Oxen, yoke of two
+Food (per pound)
+Clothing (set)
+Ammo (box of 20)
+Wagon wheel
+Wagon axle
+Wagon tongue
