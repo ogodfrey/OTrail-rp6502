@@ -14,14 +14,8 @@ rp6502_asset(oregon tunes src/tunes.dat)
 rp6502_asset(oregon landmarks src/landmarks.dat)
 rp6502_asset(oregon events src/events.dat)
 rp6502_executable(oregon DATA default RESET default)
-execute_process(
-    COMMAND git describe --tags --always
-    WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
-    OUTPUT_VARIABLE OREGON_VERSION
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    ERROR_QUIET
-    RESULT_VARIABLE OREGON_VERSION_RESULT)
-if(NOT OREGON_VERSION_RESULT EQUAL 0 OR OREGON_VERSION STREQUAL "")
+file(STRINGS "${CMAKE_CURRENT_LIST_DIR}/VERSION" OREGON_VERSION LIMIT_COUNT 1)
+if(NOT OREGON_VERSION)
     set(OREGON_VERSION "dev")
 endif()
 rp6502_web(oregon CONFIG "    title: 'The Oregon Trail',\n    footer: 'Version ${OREGON_VERSION}. The Picocomputer 6502 was created by <a href=\"https://picocomputer.github.io/index.html\">Rumbledethumps</a>.',\n    autoplay: 'off',\n")
