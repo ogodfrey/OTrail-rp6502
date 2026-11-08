@@ -17,7 +17,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "src", "tunes.dat")
 LANDMARKS = 18
 EVENTS = 20
-EFFECTS = 7
+EFFECTS = 8
 ENTRIES = LANDMARKS + EVENTS + EFFECTS
 ENTRY = struct.Struct("<HB")
 NOTE = struct.Struct("<HB")
@@ -91,6 +91,8 @@ TUNES = {
          (440, 8), (494, 8), (587, 8), (659, 8), (698, 8), (659, 8), (587, 8), (494, 8), (392, 32)],
     43: [(392, 6), (494, 6), (587, 6), (494, 6), (392, 6), (440, 6), (523, 6), (587, 12)],
     44: [(330, 8), (0, 6), (330, 8), (0, 6), (294, 8), (0, 6), (262, 24)],
+    # Dysentery ending: a slow minor-key tune, a bit longer than the title, that sinks to a low end.
+    45: [(220, 36), (262, 24), (294, 24), (330, 36), (0, 12), (294, 24), (262, 24), (247, 36), (220, 36), (0, 12), (196, 48)],
 }
 
 

@@ -118,7 +118,7 @@ void sound_title(void)
    entry is three bytes, the offset and count of the notes, and each note is three bytes. */
 #define LANDMARK_COUNT 18
 #define EVENT_COUNT 20
-#define EFFECT_COUNT 7
+#define EFFECT_COUNT 8
 #define EFFECT_BASE (LANDMARK_COUNT + EVENT_COUNT)
 #define TUNE_ENTRIES (EFFECT_BASE + EFFECT_COUNT)
 #define MAX_TUNE_NOTES 20
@@ -214,6 +214,9 @@ void sound_effect(sfx_t sfx)
         break;
     case SFX_BROKEN:
         play_tune(TITLE_CHANNEL, EFFECT_BASE + 6);
+        break;
+    case SFX_DYSENTERY:
+        play_tune(TITLE_CHANNEL, EFFECT_BASE + 7);
         break;
     }
 }

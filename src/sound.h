@@ -9,7 +9,8 @@ typedef enum
     SFX_ARRIVE,
     SFX_CREAK,
     SFX_WEEKLY,
-    SFX_BROKEN
+    SFX_BROKEN,
+    SFX_DYSENTERY
 } sfx_t;
 
 void sound_init(void);

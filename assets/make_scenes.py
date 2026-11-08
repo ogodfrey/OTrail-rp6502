@@ -59,6 +59,7 @@ ABANDONED_WAGON_ART = os.path.join(ROOT, "assets", "abandoned_wagon.png")
 THIEF_NIGHT_ART = os.path.join(ROOT, "assets", "thief_night.png")
 LITTLE_WATER_ART = os.path.join(ROOT, "assets", "little_water.png")
 INADEQUATE_GRASS_ART = os.path.join(ROOT, "assets", "inadequate_grass.png")
+DYSENTERY_END_ART = os.path.join(ROOT, "assets", "dysentery_end.png")
 PREVIEW_DIR = os.path.join(ROOT, "build", "scenes")
 
 W = 640
@@ -280,6 +281,11 @@ def draw_inadequate_grass(img, rng):
     img.paste(Image.open(INADEQUATE_GRASS_ART))
 
 
+def draw_dysentery_end(img, rng):
+    """The dysentery ending is a painting already mapped to the game palette, in assets/dysentery_end.png."""
+    img.paste(Image.open(DYSENTERY_END_ART))
+
+
 SCENE_NAMES = ["prairie", "mountain", "river", "fort", "store", "journey", "chimney",
                "independence", "soda_springs", "blue_mountains", "broken_wagon",
                "willamette_valley", "independence_town", "kansas_river", "big_blue_river",
@@ -287,7 +293,7 @@ SCENE_NAMES = ["prairie", "mountain", "river", "fort", "store", "journey", "chim
                "gravesite", "indians_food", "blizzard", "thunderstorm", "heavy_fog", "hail_storm",
                "oxen_died_or_injured", "party_member_afflicted", "lost_trail", "wild_fruit",
                "rough_trail", "wagon_fire", "party_member_lost",
-               "abandoned_wagon", "thief_night", "little_water", "inadequate_grass"]
+               "abandoned_wagon", "thief_night", "little_water", "inadequate_grass", "dysentery_end"]
 SCENE_DRAWERS = [draw_prairie, draw_mountain, draw_river, draw_fort, draw_store, draw_journey,
                  draw_chimney, draw_independence, draw_soda_springs, draw_blue_mountains,
                  draw_broken_wagon, draw_willamette_valley, draw_independence_town,
@@ -296,7 +302,8 @@ SCENE_DRAWERS = [draw_prairie, draw_mountain, draw_river, draw_fort, draw_store,
                  draw_gravesite, draw_indians_food, draw_blizzard, draw_thunderstorm, draw_heavy_fog,
                  draw_hail_storm, draw_oxen, draw_party_afflicted, draw_lost_trail, draw_wild_fruit,
                  draw_rough_trail, draw_wagon_fire, draw_party_member_lost,
-                 draw_abandoned_wagon, draw_thief_night, draw_little_water, draw_inadequate_grass]
+                 draw_abandoned_wagon, draw_thief_night, draw_little_water, draw_inadequate_grass,
+                 draw_dysentery_end]
 
 
 def build_images():

@@ -36,6 +36,7 @@
 #define MSG_WAIT_DAY 171
 #define MSG_ACTION 172
 #define MSG_LEADER_NAME 183
+#define AFFLICTION_DYSENTERY 7
 #define FERRY_CENTS 500L
 #define TOLL_BASE_CENTS 500L
 #define TOLL_PER_OX_CENTS 50L
@@ -152,6 +153,7 @@ typedef struct {
     bool crossing;
     bool said;
     bool won;
+    bool dysentery_end;
     int talk_turn;
     char leader[NAME_LEN];
     unsigned long visited;
@@ -503,7 +505,13 @@ static void illness(game_t *g)
 
     g->hr = FP(20.0);
     if (g->party[i].affl >= 0) {
+        bool leader_dysentery = i == 0 && g->party[i].affl == AFFLICTION_DYSENTERY;
+
         member_die(g, i, g->party[i].affl >= 3 ? affliction_name[g->party[i].affl] : "illness");
+        if (leader_dysentery) {
+            g->dysentery_end = true;
+            g->np = 0;
+        }
         return;
     }
     afflict(g, i, ranged(3, 8));
@@ -1874,6 +1882,12 @@ void game_play(game_result_t *result)
         pts = points_for(&g);
         sound_effect(SFX_ARRIVE);
         show_arrival(&g, pts);
+    } else if (g.dysentery_end) {
+        show_scene(&g, SCENE_DYSENTERY_END);
+        sound_effect(SFX_DYSENTERY);
+        ui_pause();
+        grave_write(&g);
+        ui_pause();
     } else if (g.np == 0) {
         ui_clear();
         printf(msg_get(138));

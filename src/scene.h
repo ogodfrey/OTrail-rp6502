@@ -42,7 +42,8 @@ typedef enum
     SCENE_ABANDONED_WAGON,
     SCENE_THIEF_NIGHT,
     SCENE_LITTLE_WATER,
-    SCENE_INADEQUATE_GRASS
+    SCENE_INADEQUATE_GRASS,
+    SCENE_DYSENTERY_END
 } scene_t;
 
 void scene_draw(scene_t scene, bool winter);
