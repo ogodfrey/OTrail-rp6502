@@ -16,7 +16,7 @@
    then 0, then Enter. The keys are read from the keyboard map, because stdin never gets
    them. */
 static const unsigned char keypad_codes[] = {0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x58};
-static const char keypad_chars[] = "1234567890\n";
+static const char keypad_chars[] = "1234567890\r";
 static unsigned char keypad_down[sizeof keypad_codes];
 
 /* Returns the character of a keypad key that went down since the last call, or 0. */
@@ -56,22 +56,20 @@ void ui_clear(void)
 }
 
 /* Reads a line from the console, or from the keypad. A console byte is read when one is
-   waiting, so the keypad is checked only while the console is idle. End of input ends the
-   program, so piped test runs stop cleanly. */
+   waiting, so the keypad is checked only while the console is idle. CR ends a line. Once a
+   CR has been seen, LF is only the second half of a CR LF pair, so it is ignored. Hosts that
+   send only LF still end lines with it. End of input ends the program, so piped test runs
+   stop cleanly. */
 void ui_read_line(char *buf, size_t size)
 {
-    static bool last_was_cr;
-    static int pending = -1;
+    static bool seen_cr;
     size_t n = 0;
 
     fflush(stdout);
     for (;;) {
         int c;
 
-        if (pending >= 0) {
-            c = pending;
-            pending = -1;
-        } else if (RIA.ready & RIA_READY_RX) {
+        if (RIA.ready & RIA_READY_RX) {
             char ch;
 
             if (read(STDIN_FILENO, &ch, 1) != 1)
@@ -84,23 +82,13 @@ void ui_read_line(char *buf, size_t size)
                 continue;
             }
         }
-        if (c == '\n' && last_was_cr) {
-            last_was_cr = false;
-            continue;
+        if (c == '\r') {
+            seen_cr = true;
+            break;
         }
-        last_was_cr = (c == '\r');
-        if (c == '\r' || c == '\n') {
-            /* A CR LF pair from one keypress: take the LF now, so the next line does not wait for it. */
-            if (last_was_cr && (RIA.ready & RIA_READY_RX)) {
-                char ch;
-
-                if (read(STDIN_FILENO, &ch, 1) != 1)
-                    exit(0);
-                if (ch == '\n')
-                    last_was_cr = false;
-                else
-                    pending = (unsigned char)ch;
-            }
+        if (c == '\n') {
+            if (seen_cr)
+                continue;
             break;
         }
         if (n + 1 < size)
