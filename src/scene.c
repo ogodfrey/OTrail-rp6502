@@ -2,6 +2,10 @@
 #include <rp6502.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <rp6502.h>
+#include <stdio.h>
+#include <unistd.h>
 #include "scene.h"
 #include "xram.h"
 
@@ -24,14 +28,6 @@ static unsigned char copy_buf[16];
 static unsigned pos;
 static unsigned literal, match_len, match_dist;
 static unsigned char dist_bytes;
-
-/* The scene now in XRAM, so a repeat of it is not decoded again. The journey map's
-   wagon marker is undone from under[], which holds the pixels it covered. */
-static int shown = -1;
-static bool shown_winter;
-static bool under_valid;
-static int under_y, under_bx;
-static unsigned char under[8][4];
 
 /* Unpacks the n bytes in buf into XRAM. The state carries over from one chunk
    to the next, since a token, a literal, or a distance can cross the end of a chunk.
@@ -87,15 +83,10 @@ static void unpack(unsigned n)
 
 void scene_draw(scene_t scene, bool winter)
 {
-    int fd;
+    int fd = open("ROM:scenes", O_RDONLY);
     unsigned long start;
     int n;
 
-    if (scene == shown && winter == shown_winter)
-        return;
-    shown = -1;
-    under_valid = false;
-    fd = open("ROM:scenes", O_RDONLY);
     if (fd < 0)
         return;
     lseek(fd, 4L * scene, SEEK_SET);
@@ -115,8 +106,6 @@ void scene_draw(scene_t scene, bool winter)
     while (pos < SCENE_BYTES && (n = read(fd, buf, sizeof buf)) > 0)
         unpack((unsigned)n);
     close(fd);
-    shown = scene;
-    shown_winter = winter;
 }
 
 /* Palette indexes of the marker: the ink border and the white center. */
@@ -133,31 +122,6 @@ static void fill_bytes(int row, int xb, int count, unsigned char color)
     if (count > SCENE_ROW_BYTES - xb)
         count = SCENE_ROW_BYTES - xb;
     xram0_set(XRAM_SCENE + row * SCENE_ROW_BYTES + xb, pair, count);
-}
-
-/* Puts back the pixels that the last marker covered, so the map can be marked again
-   without decoding it. The marker is 4 bytes wide, at a clamped position. */
-static void marker_restore(void)
-{
-    int i;
-
-    if (!under_valid)
-        return;
-    for (i = 0; i < 8; i++)
-        xram0_write(XRAM_SCENE + (under_y - 4 + i) * SCENE_ROW_BYTES + under_bx, under[i], 4);
-    under_valid = false;
-}
-
-/* Saves the pixels that the marker at row y, byte column bx is about to cover. */
-static void marker_save(int y, int bx)
-{
-    int i;
-
-    under_y = y;
-    under_bx = bx;
-    for (i = 0; i < 8; i++)
-        xram0_read(under[i], XRAM_SCENE + (y - 4 + i) * SCENE_ROW_BYTES + bx, 4);
-    under_valid = true;
 }
 
 /* Draws the wagon marker on the journey map, at the point of the route that
@@ -197,19 +161,7 @@ void scene_journey_marker(unsigned miles)
     x = x0 + (((x1 - x0) * (int)(frac >> 3)) >> 5);
     y = y0 + (((y1 - y0) * (int)(frac >> 3)) >> 5);
 
-    if (shown != (int)SCENE_JOURNEY)
-        return;
-    marker_restore();
-    if (y < 4)
-        y = 4;
-    if (y > SCENE_HEIGHT_PX - 4)
-        y = SCENE_HEIGHT_PX - 4;
     bx = x / 2 - 2;
-    if (bx < 0)
-        bx = 0;
-    if (bx > SCENE_ROW_BYTES - 4)
-        bx = SCENE_ROW_BYTES - 4;
-    marker_save(y, bx);
     for (i = 0; i < 8; i++) {
         row = y - 4 + (int)i;
         if (i == 0 || i == 7) {
