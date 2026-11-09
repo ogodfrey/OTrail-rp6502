@@ -1766,7 +1766,7 @@ static void ask_name(char *dest, const char *prompt, const char *fallback)
     }
     if (!line[0])
         strcpy(line, fallback);
-    line[NAME_MAX] = '\0';
+    line[NAME_LEN - 1] = '\0';
     strcpy(dest, line);
 }
 

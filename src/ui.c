@@ -15,6 +15,13 @@ void ui_read_line(char *buf, size_t size)
     fflush(stdout);
     if (!fgets(buf, (int)size, stdin))
         exit(0);
+    if (strlen(buf) == size - 1 && buf[size - 2] != '\n') {
+        /* A line longer than buf would otherwise be read as the next answer. */
+        int c;
+
+        while ((c = getchar()) != '\n' && c != EOF)
+            ;
+    }
     buf[strcspn(buf, "\r\n")] = '\0';
 }
 
