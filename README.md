@@ -94,6 +94,16 @@ python tests/playthrough.py            # play a new game and save the answers
 python tests/playthrough.py --replay   # feed the saved answers back; fails if the game does not exit cleanly
 ```
 
+`tests/talktest.py` checks all 51 quotes and speaker rotation on the host,
+including LF/CRLF files and a final record without a newline. It also runs the
+ROM in the headless emulator, talks to all three speakers at Independence, and
+checks that each pause returns to the menu and the game exits normally.
+
+```bash
+python tests/talktest.py                  # after building llvm-mos/Release
+python tests/talktest.py --preset debug   # after building llvm-mos/Debug
+```
+
 `tests/render_scenes.py` checks the scene code. It builds `src/scene.c` on the
 host with a 64 KB XRAM stub, decodes each scene in both palettes, and fails if
 the pixels or the palette differ from what `assets/make_scenes.py` drew. It
@@ -401,7 +411,7 @@ same file.
 | `src/main.c`                 | Video setup, title screen, and the high scores.                                                   |
 | `src/game.c`, `src/game.h`   | Rules: party, supplies, weather, health, events, rivers, trade, and scoring.                      |
 | `src/scene.c`, `src/scene.h` | Decodes scenes into the XRAM bitmap and sets the palette.                                         |
-| `src/talk.c`, `src/talk.h`   | Talk to people: reads the talk asset and wraps each quote.                                        |
+| `src/talk.c`, `src/talk.h`   | Talk to people: reads the talk asset without heap-backed stdio and wraps each quote.               |
 | `src/talk.txt`               | The talk asset: landmark, speaker, and quote on each line.                                        |
 | `src/msg.c`, `src/msg.h`     | Looks up a game message in the msg asset by its number.                                           |
 | `src/messages.txt`           | The messages, one per line: line number is the message id. Escapes: `\n` and `\\`.                |
@@ -426,6 +436,7 @@ same file.
 | `assets/check_memory.py`     | Checks the stack room after linking. Fails the build below `OREGON_MIN_STACK` bytes.              |
 | `assets/make_journey.py`     | Makes the journey map art and the route from the dashboard image.                                 |
 | `tests/playtest.py`          | The emulator smoke test.                                                                          |
+| `tests/talktest.py`          | All dialogue records on the host and conversation/menu regression in the emulator.                 |
 | `tests/playthrough.py`       | The host playthrough: plays a full game and saves the answers.                                    |
 | `tests/playthrough.txt`      | The answers from the saved playthrough, used by `--replay`.                                       |
 | `tests/render_scenes.py`     | Decodes scenes on the host and compares them with the art.                                        |

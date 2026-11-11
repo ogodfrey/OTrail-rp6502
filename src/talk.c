@@ -1,6 +1,8 @@
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "talk.h"
 
 #define TALK_COUNT 3
@@ -40,18 +42,41 @@ bool talk_to_people(int landmark, int *turn)
 {
     int want = *turn % TALK_COUNT;
     char line[TALK_LINE_MAX];
-    FILE *f;
+    int fd;
     bool shown = false;
 
     if (landmark < 0 || landmark >= TALK_LANDMARKS)
         return false;
-    f = fopen("ROM:talk", "r");
-    if (!f)
+    fd = open("ROM:talk", O_RDONLY);
+    if (fd < 0) {
+        perror("Opening dialogue");
         return false;
-    while (!shown && fgets(line, sizeof(line), f)) {
-        char *bar1 = strchr(line, '|');
+    }
+    while (!shown) {
+        int count = read(fd, line, sizeof(line) - 1);
+        char *nl, *bar1;
         char *bar2, *bar3;
 
+        if (count < 0) {
+            perror("Reading dialogue");
+            break;
+        }
+        if (count == 0)
+            break;
+        line[count] = '\0';
+        nl = strchr(line, '\n');
+        if (nl) {
+            /* Leave the next record for the next read, without a heap-backed FILE. */
+            if (lseek(fd, (long)(nl + 1 - line) - count, SEEK_CUR) < 0) {
+                perror("Seeking dialogue");
+                break;
+            }
+            *nl = '\0';
+        } else if (count == sizeof(line) - 1) {
+            fputs("Dialogue line is too long.\n", stdout);
+            break;
+        }
+        bar1 = strchr(line, '|');
         if (!bar1 || atoi(line) != landmark || atoi(bar1 + 1) != want)
             continue;
         bar2 = strchr(bar1 + 1, '|');
@@ -70,7 +95,7 @@ bool talk_to_people(int landmark, int *turn)
         printf("\"\n");
         shown = true;
     }
-    fclose(f);
+    close(fd);
     (*turn)++;
     return shown;
 }
