@@ -189,3 +189,6 @@ Ammo (box of 20)
 Wagon wheel
 Wagon axle
 Wagon tongue
+[92m%s has recovered and is healthy again.[39m\n
+\nHUNT: arrows aim, Space fires, Esc returns. You have 30 seconds.
+Bullets %d   Animals %d\n

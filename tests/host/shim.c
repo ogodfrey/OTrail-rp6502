@@ -14,7 +14,8 @@ unsigned char ria_vsync(void)
     return frame++;
 }
 
-struct host_ria RIA = {0x40};
+/* Host stdin is read by stdio; no raw UART keystrokes are queued. */
+struct host_ria RIA = {0};
 
 int xreg(char device, char channel, unsigned char index, ...)
 {

@@ -2,6 +2,7 @@
 #define SCENE_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef enum
 {
@@ -48,5 +49,7 @@ typedef enum
 
 void scene_draw(scene_t scene, bool winter);
 void scene_journey_marker(unsigned miles);
+void scene_hunt_clear(void);
+void scene_hunt_sprite(uint8_t x, uint8_t y, uint8_t kind, bool erase);
 
 #endif

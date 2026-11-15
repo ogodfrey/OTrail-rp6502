@@ -6,8 +6,7 @@
 #include "sound.h"
 #include "xram.h"
 
-/* The OPL2 runs at block 4, the octave of middle C. Its frequency number is
-   hz * 2^16 / 49716 for the 3.58 MHz clock, so the highest note is about 776 Hz. */
+/* Start at block 4; higher notes move up a block rather than overflowing FNUM. */
 #define OPL_BLOCK 4
 #define OPL_FNUM(hz) ((unsigned)((hz) * 65536L / 49716L))
 #define KEY_ON 0x20
@@ -16,69 +15,53 @@
 #define TITLE_CHANNEL 0
 #define EFFECT_CHANNEL 1
 
-typedef struct
-{
-    unsigned hz;
-    unsigned char frames;
-} note_t;
-
-/* Sixty frames is one second, the rate of VSYNC. */
-static const note_t title_tune[] = {
-    {330, 18}, {392, 18}, {440, 18}, {392, 18}, {330, 18}, {294, 18}, {262, 36},
-    {330, 18}, {392, 18}, {523, 36}, {440, 18}, {392, 36},
-};
-
 static void opl_poke(unsigned reg, unsigned char val)
 {
     xram0_write(XRAM_OPL + reg, &val, 1);
 }
 
-/* A banjo on channel c: a sharp pluck that dies away quickly. The values are
-   the OPL2 banjo patch, with a modulator and a carrier in slots c and c+3. */
-static void banjo_patch(unsigned c)
-{
-    unsigned mod = c, car = c + 3;
+enum { VOICE_BANJO, VOICE_BUGLE, VOICE_RIVER, VOICE_CREAK, VOICE_SHOT };
 
-    opl_poke(0x20 + mod, 0x21);
-    opl_poke(0x40 + mod, 0x1A);
-    opl_poke(0x60 + mod, 0xF9);
-    opl_poke(0x80 + mod, 0xF0);
-    opl_poke(0x20 + car, 0x21);
-    opl_poke(0x40 + car, 0x00);
-    opl_poke(0x60 + car, 0xD6);
-    opl_poke(0x80 + car, 0xF4);
-    opl_poke(0xC0 + c, 0x0A);
-    opl_poke(0xE0 + mod, 0x00);
-    opl_poke(0xE0 + car, 0x00);
+/* Paired operator registers followed by channel feedback. Only channels 0 and 1
+   are used, whose modulator/carrier slots are c and c+3. */
+static void patch(uint8_t c, uint8_t voice)
+{
+    static const unsigned char regs[] = {
+        0x20, 0x23, 0x40, 0x43, 0x60, 0x63, 0x80, 0x83, 0xE0, 0xE3, 0xC0
+    };
+    static const unsigned char voices[][11] = {
+        {0x21, 0x21, 0x1A, 0x08, 0xF9, 0xD6, 0xF0, 0xF4, 0, 0, 0x0A},
+        {0x21, 0x21, 0x24, 0x08, 0xA3, 0x92, 0x34, 0x27, 0, 0, 0x04},
+        {0x01, 0x02, 0x08, 0x10, 0x84, 0x74, 0x47, 0x47, 0, 0, 0x0E},
+        {0x20, 0x21, 0x0A, 0x05, 0x28, 0x4A, 0x22, 0x24, 0, 0, 0x0E},
+        {0x0F, 0x01, 0x00, 0x08, 0xF8, 0xF8, 0x08, 0x08, 0, 0, 0x0E},
+    };
+    uint8_t i;
+
+    for (i = 0; i < sizeof regs; i++)
+        opl_poke(regs[i] + c, voices[voice][i]);
 }
 
-/* One simple patch on channel c for the effects: a modulator and a carrier, slots c and c+3. */
-static void effect_patch(unsigned c)
-{
-    unsigned mod = c, car = c + 3;
+static unsigned char pitch[2];
 
-    opl_poke(0x20 + mod, 0x01);
-    opl_poke(0x40 + mod, 0x10);
-    opl_poke(0x60 + mod, 0xF0);
-    opl_poke(0x80 + mod, 0x77);
-    opl_poke(0x20 + car, 0x01);
-    opl_poke(0x40 + car, 0x00);
-    opl_poke(0x60 + car, 0xF0);
-    opl_poke(0x80 + car, 0x77);
-    opl_poke(0xC0 + c, 0x00);
-}
-
-static void note_on(unsigned c, unsigned hz)
+static void note_on(uint8_t c, unsigned hz)
 {
     unsigned f = OPL_FNUM(hz);
+    uint8_t block = OPL_BLOCK;
+
+    while (f > 1023) {
+        f >>= 1;
+        block++;
+    }
+    pitch[c] = (block << 2) | (f >> 8);
 
     opl_poke(0xA0 + c, f & 0xFF);
-    opl_poke(0xB0 + c, KEY_ON | (OPL_BLOCK << 2) | (f >> 8));
+    opl_poke(0xB0 + c, KEY_ON | pitch[c]);
 }
 
-static void note_off(unsigned c)
+static void note_off(uint8_t c)
 {
-    opl_poke(0xB0 + c, OPL_BLOCK << 2);
+    opl_poke(0xB0 + c, pitch[c]);
 }
 
 /* Waits n frames of VSYNC. The register is 8 bits, so the difference wraps. */
@@ -90,28 +73,12 @@ static void wait_frames(unsigned n)
         ;
 }
 
-static void play(unsigned c, const note_t *notes, unsigned count)
-{
-    unsigned i;
-
-    for (i = 0; i < count; i++) {
-        if (notes[i].hz)
-            note_on(c, notes[i].hz);
-        wait_frames(notes[i].frames);
-        note_off(c);
-    }
-}
-
 void sound_init(void)
 {
     xreg_ria_opl(XRAM_OPL);
-    banjo_patch(TITLE_CHANNEL);
-    effect_patch(EFFECT_CHANNEL);
-}
-
-void sound_title(void)
-{
-    play(TITLE_CHANNEL, title_tune, sizeof title_tune / sizeof title_tune[0]);
+    xram0_set(XRAM_OPL, 0, 256);
+    patch(TITLE_CHANNEL, VOICE_BANJO);
+    patch(EFFECT_CHANNEL, VOICE_RIVER);
 }
 
 /* Plays the tune of a landmark, read from the ROM:tunes asset (src/tunes.dat). Its
@@ -125,10 +92,11 @@ void sound_title(void)
 #define TUNE_ENTRY_BYTES 3
 #define TUNE_NOTE_BYTES 3
 
-static void play_tune(unsigned c, unsigned index)
+static void play_tune(uint8_t c, unsigned index)
 {
     unsigned char entry[TUNE_ENTRY_BYTES], note[TUNE_NOTE_BYTES];
-    unsigned offset, count, i;
+    unsigned offset;
+    uint8_t count, i;
     int fd;
 
     if (index >= TUNE_ENTRIES)
@@ -158,13 +126,21 @@ static void play_tune(unsigned c, unsigned index)
             note_on(c, hz);
         wait_frames(note[2]);
         note_off(c);
+        wait_frames(1);
     }
     close(fd);
 }
 
+void sound_title(void)
+{
+    play_tune(TITLE_CHANNEL, 0);
+}
+
 void sound_landmark(unsigned index)
 {
+    patch(TITLE_CHANNEL, VOICE_BUGLE);
     play_tune(TITLE_CHANNEL, index);
+    patch(TITLE_CHANNEL, VOICE_BANJO);
 }
 
 void sound_event(unsigned index)
@@ -172,42 +148,36 @@ void sound_event(unsigned index)
     play_tune(TITLE_CHANNEL, LANDMARK_COUNT + index);
 }
 
-/* The wheel creak: wooden friction and resonance on channel 1, from the RP6502 OPL2
-   example. Each pair is an OPL2 register and its value: slow attack and long decay with
-   sustain on, and feedback of level 7 for the wooden grit. The notes of the creak are the
-   wheel creak tune in tunes.dat, played by play_tune. */
-static const unsigned char creak_regs[] = {
-    0x21, 0x20, 0x24, 0x21, 0x41, 0x0A, 0x44, 0x05, 0x61, 0x28,
-    0x64, 0x4A, 0x81, 0x22, 0x84, 0x24, 0xC1, 0x0E,
-};
-
-static void wheel_creak(void)
+void sound_shot(void)
 {
-    unsigned i;
-
-    for (i = 0; i < sizeof creak_regs; i += 2)
-        opl_poke(creak_regs[i], creak_regs[i + 1]);
-    play_tune(EFFECT_CHANNEL, EFFECT_BASE + 2);
-    effect_patch(EFFECT_CHANNEL);
+    patch(EFFECT_CHANNEL, VOICE_SHOT);
+    note_on(EFFECT_CHANNEL, 80);
+    wait_frames(2);
+    note_off(EFFECT_CHANNEL);
 }
 
 void sound_effect(sfx_t sfx)
 {
     switch (sfx) {
     case SFX_RIVER:
+        patch(EFFECT_CHANNEL, VOICE_RIVER);
         play_tune(EFFECT_CHANNEL, EFFECT_BASE + 0);
         break;
     case SFX_FORT:
+        patch(EFFECT_CHANNEL, VOICE_BUGLE);
         play_tune(EFFECT_CHANNEL, EFFECT_BASE + 1);
         break;
     case SFX_CREAK:
-        wheel_creak();
+        patch(EFFECT_CHANNEL, VOICE_CREAK);
+        play_tune(EFFECT_CHANNEL, EFFECT_BASE + 2);
         break;
     case SFX_DEATH:
         play_tune(TITLE_CHANNEL, EFFECT_BASE + 3);
         break;
     case SFX_ARRIVE:
+        patch(TITLE_CHANNEL, VOICE_BUGLE);
         play_tune(TITLE_CHANNEL, EFFECT_BASE + 4);
+        patch(TITLE_CHANNEL, VOICE_BANJO);
         break;
     case SFX_WEEKLY:
         play_tune(TITLE_CHANNEL, EFFECT_BASE + 5);

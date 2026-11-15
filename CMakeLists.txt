@@ -28,6 +28,8 @@ target_sources(oregon PRIVATE
     src/talk.c
     src/ui.c
 )
+# Keep the arcade loop and daily simulation from growing through inlining.
+target_compile_options(oregon PRIVATE -fno-inline-functions)
 
 # The linker checks the static RAM sections, but not the stack. Fail the build
 # when the stack would be too short to run safely. The ROM is written first,

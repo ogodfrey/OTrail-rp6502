@@ -18,6 +18,7 @@ void sound_title(void);
 void sound_effect(sfx_t sfx);
 void sound_landmark(unsigned index);
 void sound_event(unsigned index);
+void sound_shot(void);
 #define EVENT_SNOW_BOUND 0
 #define EVENT_SNAKE_BITE 1
 #define EVENT_ILLNESS 2

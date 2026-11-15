@@ -29,6 +29,37 @@ static unsigned pos;
 static unsigned literal, match_len, match_dist;
 static unsigned char dist_bytes;
 
+void scene_hunt_clear(void)
+{
+    xram0_set(XRAM_SCENE, 0, SCENE_BYTES);
+}
+
+/* Original silhouettes, two pixels per bit. X is in four-pixel units. */
+void scene_hunt_sprite(uint8_t x, uint8_t y, uint8_t kind, bool erase)
+{
+    static const unsigned char shapes[7][8] = {
+        {0x0A, 0x0A, 0x0E, 0x1C, 0x7C, 0xFC, 0x6C, 0x44},
+        {0xC0, 0xE2, 0x66, 0x3E, 0x3C, 0x7C, 0x24, 0x24},
+        {0x02, 0x06, 0x0C, 0x7C, 0xFC, 0x7C, 0x44, 0x44},
+        {0x05, 0x07, 0x06, 0x7C, 0xFC, 0x7C, 0x44, 0x44},
+        {0x06, 0x7F, 0xFF, 0xFE, 0xFC, 0xFC, 0xCC, 0xCC},
+        {0x1E, 0x7F, 0xFF, 0xFF, 0xFE, 0x7C, 0x6C, 0x48},
+        {0x18, 0x18, 0, 0xC3, 0xC3, 0, 0x18, 0x18},
+    };
+    uint8_t row, bit;
+    unsigned char pixels[8], bits;
+
+    if (x > 156 || y > 112 || kind > 6)
+        return;
+    for (row = 0; row < 8; row++) {
+        bits = erase ? 0 : shapes[kind][row];
+        for (bit = 0; bit < 8; bit++)
+            pixels[bit] = bits & (128 >> bit) ? (kind == 6 ? 0x44 : 0x66) : 0;
+        xram0_write(XRAM_SCENE + (y + row * 2) * SCENE_ROW_BYTES + x * 2u, pixels, 8);
+        xram0_write(XRAM_SCENE + (y + row * 2 + 1) * SCENE_ROW_BYTES + x * 2u, pixels, 8);
+    }
+}
+
 /* Unpacks the n bytes in buf into XRAM. The state carries over from one chunk
    to the next, since a token, a literal, or a distance can cross the end of a chunk.
    A match copies bytes already in XRAM, in pieces no longer than its distance, so

@@ -10,7 +10,9 @@
             "name": "base",
             "hidden": true,
             "cacheVariables": {
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "RP6502_EMU_VERSION": "0.43",
+                "RP6502_WEB_VERSION": "0.43"
             }
         },
         {

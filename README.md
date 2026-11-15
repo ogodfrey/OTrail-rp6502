@@ -49,7 +49,9 @@ The ROM is written to `build/llvm-mos/debug/oregon/oregon.rp6502`. The
 Both presets compile with `-Oz`. The ROM fills most of the 6502's RAM, and the
 other optimization levels do not fit. Do not change that flag. The Debug preset
 keeps line information with `-g1`, which the emulator uses for source-level
-debugging.
+debugging. Function inlining is disabled to keep the simulation and arcade
+code within RAM. Both presets select the v0.43 emulator and web player for
+the corrected OPL2 implementation.
 
 Linking does not prove the stack fits. After linking, the build runs
 `assets/check_memory.py`, which prints the stack room left in RAM and fails if it is
@@ -111,6 +113,16 @@ writes the decoded pictures to `build/scenes/`.
 
 ```bash
 python tests/render_scenes.py
+```
+
+`tests/gameplaytest.py` checks hunting hits, misses, one shot per Space press,
+timeout, ammunition, the 100-pound carry limit and wagon capacity. It also checks
+recovery notices, sprite bounds, high-note pitch, and restoration of the banjo
+voice after bugle calls. After building Release, it also drives real HID aiming,
+firing, Escape, and the return to the menu in the v0.43 emulator.
+
+```bash
+python tests/gameplaytest.py
 ```
 
 The host build writes its score and grave files to the system temp folder, so
@@ -244,6 +256,8 @@ Afflictions are a broken arm or leg (30 days), a snakebite (10 days), or an
 illness (10 days). When a misfortune picks a party member, the leader is not
 chosen while others live. A member dies of an illness that strikes someone who
 is already sick, or drowns in a river. The game ends when everyone is dead.
+When an affliction expires, a bright green message names the recovered member.
+It appears once on recovery, not every day that the member remains healthy.
 
 ### Random events
 
@@ -305,8 +319,14 @@ from the file when each leg starts.
 
 ### Hunting
 
-Hunting costs one day and bullets. Each shot can kill an animal, and the
-animals depend on where you are:
+Hunting is a 30-second arcade challenge in the picture area. Press Enter after
+the instructions, use the arrow keys to move the crosshair, and press Space to
+shoot a moving animal. Release Space before firing again. Escape returns early;
+wait for held keys to be released before returning to the trail. Each shot costs
+one bullet, whether it hits or misses. A hunt costs one day, even if you leave
+early. With no bullets, hunting is refused without spending a day.
+
+The animals depend on where you are:
 
 * Rabbits (1 to 5 pounds), squirrels (1 to 3), and deer (60 to 75) are always
   available.
@@ -314,7 +334,9 @@ animals depend on where you are:
 * Bears (100 to 200) appear from South Pass on.
 * Buffalo (850 to 1000) appear before South Pass.
 
-Meat is capped so that food does not go above 2000 pounds.
+As in the Apple II game, you can carry at most 100 pounds back from each hunt.
+Meat is also capped so that food does not go above 2000 pounds. The day's normal
+food consumption happens after the meat is added.
 
 ### Trading
 
@@ -338,16 +360,17 @@ from. The list starts empty.
 
 These parts of the Apple II game are missing or simplified here:
 
-* **Hunting** is a text hunt, not the arcade game. Each shot has a 40% chance to
-  hit. That chance is my assumption, not a value from the spec.
+* **Hunting** now has moving animal silhouettes and aimed shots rather than
+  random hit chances. It uses a crosshair and one animal at a time, not the
+  Apple II's walking hunter, directional bullets, obstacles, and multiple animals.
 * **The Columbia raft** is three random hazards with the spec's losses. It is
   not the arcade game with its arrow-key steering.
 * **Scene graphics** are hand-drawn pictures in 16 colors. They are not the
   Apple II pictures.
-* **Music** is a short title tune only. There's no music on the trail, and
-  the sound is an OPL2 FM chip with a single simple patch, so it won't sound like
-  the Apple II.
-* **Native American encounters** are not implemented.
+* **Music** uses original OPL2 banjo melodies and bugle calls, not the Apple II
+  speaker arrangements. Landmarks and events have their own tunes.
+* **Native American interactions** include the food-help event and the Snake
+  River guide, but do not attempt a broader encounter/dialogue system.
 * **Give up the journey** is an addition. The Apple II ends only by arrival or
   death.
 * **The Top Ten** starts empty. The original's list is not included.
@@ -359,19 +382,50 @@ Under the spec's river formulas, a Kansas River ford in March can be very deadly
 because the early ground moisture makes the river deep. The ferry or caulking
 are safer choices there.
 
+### Parity priorities
+
+The [Apple II manual](https://archive.org/details/MECC_A157_The_Oregon_Trail_Manual)
+is the reference for comparison, rather than later DOS or Windows editions.
+
+1. **Raft steering:** the largest remaining arcade gap. Consider real-time
+   left/right steering and collision-based losses next, instead of three
+   unavoidable random hazards.
+2. **Hunting depth:** consider a walking hunter, directional projectiles,
+   obstacles, and several animals once the small arcade loop is proven on hardware.
+3. **Balance and route audit:** compare river risks, illness/death rules, and leg
+   lengths against an Apple II playthrough before changing their formulas. The
+   default route currently totals 1871 miles via Barlow Road, despite the
+   displayed 2040-mile goal; alternate routes also change the total.
+4. **Travel pacing:** optional single-key input could feel closer to the original.
+   Keep line input available for serial terminals and scripted play.
+
+These are recommendations, not additional gameplay changes in this update.
+New pictures, instrument data, and longer tunes should remain streamed ROM
+resources rather than consuming the limited 6502 RAM.
+
 ## Sound
 
 The sound uses the OPL2 FM chip, which is mapped to a page of XRAM at
 `XRAM_OPL` (`$E000`). A short banjo tune plays when the title screen loads.
-Sound effects play for the river crossing and arriving at a fort. On each travel day when the wagon moves, a
+The emulator/web presets use [RP6502 v0.43](https://github.com/picocomputer/rp6502/releases/tag/v0.43),
+whose OPL2 core was tested against YM3812-LLE. Update board firmware to v0.43
+for matching audio and its cleaner hardware output.
+
+Separate FM patches provide plucked banjo, sustained brass, river effects,
+wooden creaks, and hunting gunshots. Notes above the block-4 pitch range select
+a higher octave block rather than overflowing the frequency number, and notes
+have a one-frame key-off gap so repeated pitches retrigger.
+
+Sound effects play for river crossings and arriving at a fort. On each travel day when the wagon moves, a
 wheel creak plays: wooden friction on OPL2 channel 1, with its patch set in `src/sound.c` and its
-notes in `src/tunes.dat`. Each landmark from the Kansas River on has its own banjo tune, played when
+notes in `src/tunes.dat`. Each landmark from the Kansas River on has its own bugle tune, played when
 you arrive; the tunes are in `src/tunes.dat` and are read from disk on arrival. Each of the
-six forts has its own banjo march, which follows the fort fanfare. When you reach
-Willamette Valley, an upbeat banjo ditty plays.
+six forts has its own march, which follows the brass fort fanfare. When you reach
+Willamette Valley, a bugle call plays.
 When the weekly summary appears, a short banjo riff plays. When a party member
 dies, a sad banjo riff in a minor key plays. When a wagon breaks, the broken wagon
-picture shows and a clunky banjo riff plays. The title tune takes about five seconds
+picture shows and a clunky banjo riff plays. The title melody is also streamed from
+`src/tunes.dat`, rather than kept in RAM. The title tune takes about five seconds
 and then the prompt appears. In the web player, the sound starts with the first
 click on the game, which is why the player is set to `autoplay: 'off'` in
 `CMakeLists.txt`.

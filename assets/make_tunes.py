@@ -4,8 +4,8 @@ src/sound.c reads on arrival.
 The file starts with one three-byte entry for each of the 18 landmarks: the offset of
 its notes in the file, as 16 bits little-endian, and the number of notes. Each note is
 three bytes: the frequency in hertz, as 16 bits little-endian, then the frames to hold
-it. Sixty frames is one second, and a frequency of 0 is a rest. Independence and
-Willamette Valley have no tune here: the victory ditty plays at Willamette Valley.
+it. Sixty frames is one second, and a frequency of 0 is a rest. Entry 0 holds the
+title tune. Willamette Valley uses the arrival fanfare in the effects entries.
 
 Usage: python assets/make_tunes.py
 """
@@ -22,8 +22,10 @@ ENTRIES = LANDMARKS + EVENTS + EFFECTS
 ENTRY = struct.Struct("<HB")
 NOTE = struct.Struct("<HB")
 
-# Each tune is in the banjo voice, with its own key, tempo, and rhythm.
+# Each tune has its own key, tempo, and rhythm; sound.c selects the voice.
 TUNES = {
+    0: [(330, 18), (392, 18), (440, 18), (392, 18), (330, 18), (294, 18), (262, 36),
+        (330, 18), (392, 18), (523, 36), (440, 18), (392, 36)],
     1: [(392, 8), (494, 8), (587, 12), (494, 8), (392, 8), (330, 8), (392, 16), (494, 8), (587, 8), (659, 12), (587, 8), (494, 8), (392, 20)],
     2: [(294, 10), (370, 10), (440, 10), (554, 10), (440, 10), (370, 10), (330, 10), (294, 20), (220, 10), (294, 10), (370, 20)],
     3: [(523, 6), (523, 6), (392, 6), (523, 6), (659, 12), (587, 6), (523, 6), (587, 6), (659, 6), (523, 6), (392, 6), (392, 6), (523, 18)],
@@ -80,15 +82,16 @@ TUNES = {
     36: [(262, 12), (0, 8), (247, 12), (220, 12), (0, 8), (196, 24)],
     # Inadequate grass: a thin, wavering tune, held long, like grass that will not feed the oxen.
     37: [(330, 16), (0, 8), (294, 16), (262, 12), (0, 8), (247, 28)],
-    # Sound effects: river (38), fort (39), wheel creak (40), death (41), arrival ditty (42),
+    # Sound effects: river (38), fort (39), wheel creak (40), death (41), arrival bugle (42),
     # weekly riff (43), broken wagon (44). The creak's pitch wanders over a few notes; its
     # OPL2 patch is set in sound.c. The death riff is sad, in a minor key.
     38: [(392, 4), (349, 4), (330, 4), (294, 6)],
-    39: [(523, 6), (659, 6), (698, 6), (698, 6), (659, 12)],
+    39: [(392, 6), (523, 6), (659, 6), (784, 18), (659, 6), (523, 18)],
     40: [(150, 5), (120, 5), (165, 5), (110, 5), (140, 5)],
     41: [(440, 16), (392, 16), (349, 16), (330, 16), (294, 40)],
-    42: [(392, 8), (494, 8), (587, 8), (494, 8), (587, 8), (659, 8), (587, 8), (494, 8),
-         (440, 8), (494, 8), (587, 8), (659, 8), (698, 8), (659, 8), (587, 8), (494, 8), (392, 32)],
+    # Original bugle call using the open horn's C/G harmonic series.
+    42: [(392, 8), (392, 8), (523, 16), (0, 4), (659, 8), (784, 24),
+         (659, 8), (523, 8), (659, 8), (523, 32)],
     43: [(392, 6), (494, 6), (587, 6), (494, 6), (392, 6), (440, 6), (523, 6), (587, 12)],
     44: [(330, 8), (0, 6), (330, 8), (0, 6), (294, 8), (0, 6), (262, 24)],
     # Dysentery ending: a slow minor-key tune, a bit longer than the title, that sinks to a low end.

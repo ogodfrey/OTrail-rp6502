@@ -1,0 +1,31 @@
+seed 42
+wait "Choose: " 600
+type "1\r1\rAlice\r\r\r\r\r1\r1\r3\r2\r600\r3\r5\r4\r5\r0\r\r" 600
+wait "9) Talk to people" 600
+type "1\r" 60
+wait "M for the menu: " 600
+type "m\r" 60
+wait "8) Hunt for food" 600
+type "8\r" 60
+wait "HUNT:" 600
+wait "Press Enter to continue." 60
+type "\r" 30
+run 30
+mark
+press right up
+run 60
+release right up
+expect-changed
+press space
+run 12
+release space
+wait "Bullets 99" 60
+press escape
+run 12
+release escape
+wait "Press Enter to continue." 180
+type "\r" 60
+wait "8) Hunt for food" 180
+type "10\r1\r\r3\r" 180
+wait exit 600
+expect exit 0

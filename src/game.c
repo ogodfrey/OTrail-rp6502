@@ -11,6 +11,7 @@
 #include "talk.h"
 #include "ui.h"
 #include "msg.h"
+#include "xram.h"
 
 #define PARTY_SIZE 5
 #define NAME_MAX 9
@@ -99,11 +100,6 @@ typedef struct {
     uint8_t bottom;
     uint8_t extra;
 } river_t;
-
-typedef struct {
-    int lo;
-    int hi;
-} range_t;
 
 #define GRAVE_FILE "oregon.grv"
 #define EPITAPH_MAX 29
@@ -931,9 +927,12 @@ static void day_tick(game_t *g, bool travel)
 
     for (i = 0; i < g->np; i++) {
         if (g->party[i].affl >= 0) {
-            if (--g->party[i].affl_days < 1)
+            if (--g->party[i].affl_days < 1) {
                 g->party[i].affl = -1;
-            else
+                printf(msg_get(191),
+                       g->party[i].name);
+                g->said = true;
+            } else
                 afflicted++;
         }
     }
@@ -1276,10 +1275,12 @@ static void do_trade(game_t *g)
 
 static void do_hunt(game_t *g)
 {
-    static const range_t rabbit = {1, 5}, squirrel = {1, 3}, deer = {60, 75},
-                         antlered = {50, 70}, bear = {100, 200}, buffalo = {850, 1000};
-    const range_t *list[6];
-    int avail = 0, shots, i, kills = 0;
+    static const int weights[6][2] = {{1, 5}, {1, 3}, {60, 75},
+                                     {50, 70}, {100, 200}, {850, 1000}};
+    int kills = 0;
+    uint8_t kind, x = 255, y = 0, ax = 78, ay = 56;
+    unsigned tick;
+    unsigned char frame, keys[32] = {0}, previous = 0;
     long gained = 0;
 
     if (g->bullets <= 0) {
@@ -1287,34 +1288,78 @@ static void do_hunt(game_t *g)
         ui_pause();
         return;
     }
-    shots = ui_ask_int(msg_get(73), 0, g->bullets);
-    if (shots == 0)
+    ui_clear();
+    puts(msg_get(192));
+    ui_pause();
+    if (xreg(0, 0, 0, XRAM_KEYBOARD) < 0) {
+        perror("Hunting keyboard");
         return;
-    g->bullets -= shots;
-
-    list[avail++] = &rabbit;
-    list[avail++] = &squirrel;
-    list[avail++] = &deer;
-    if (g->lm >= 4 && g->lm <= 12)
-        list[avail++] = &antlered;
-    if (g->lm >= 7)
-        list[avail++] = &bear;
-    if (g->lm <= 6)
-        list[avail++] = &buffalo;
-
-    for (i = 0; i < shots; i++) {
-        const range_t *a;
-        if (!chance(FP(0.4)))
-            continue;
-        a = list[rnd(avail)];
-        gained += ranged(a->lo, a->hi);
-        kills++;
     }
+    ui_clear();
+    puts(msg_get(192));
+
+    scene_hunt_clear();
+    frame = ria_vsync();
+    kind = 0;
+    for (tick = 0; tick < 300; tick++) {
+        while ((unsigned char)(ria_vsync() - frame) < 6)
+            ;
+        frame = ria_vsync();
+        xram0_read(keys, XRAM_KEYBOARD, sizeof keys);
+        if (keys[5] & 2) /* HID Escape, 0x29 */
+            break;
+        if (x != 255)
+            scene_hunt_sprite(x, y, kind, true);
+        scene_hunt_sprite(ax, ay, 6, true);
+        /* HID arrow keys 0x4F..0x52. */
+        if ((keys[10] & 1) && ax > 1) ax -= 2;
+        if ((keys[9] & 128) && ax < 154) ax += 2;
+        if ((keys[10] & 4) && ay > 3) ay -= 4;
+        if ((keys[10] & 2) && ay < 108) ay += 4;
+        if (x == 255 || x > 152) {
+            do {
+                kind = rnd(6);
+            } while ((kind == 3 && (g->lm < 4 || g->lm > 12)) ||
+                     (kind == 4 && g->lm < 7) || (kind == 5 && g->lm > 6));
+            x = 0;
+            y = rnd(24) * 4;
+        } else {
+            x += kind < 2 ? 3 : 2;
+        }
+        if ((keys[5] & 16) && !previous && g->bullets > 0) {
+            g->bullets--;
+            sound_shot();
+            if (x <= 152 && abs((int)ax - x) <= 3 && abs((int)ay - y) <= 10) {
+                gained += ranged(weights[kind][0], weights[kind][1]);
+                kills++;
+                x = 255;
+            }
+            printf(msg_get(193), g->bullets, kills);
+            fflush(stdout);
+        }
+        previous = keys[5] & 16; /* HID Space, 0x2C: one shot per press. */
+        if (x <= 152)
+            scene_hunt_sprite(x, y, kind, false);
+        scene_hunt_sprite(ax, ay, 6, false);
+    }
+    do {
+        xram0_read(keys, XRAM_KEYBOARD, sizeof keys);
+    } while ((keys[5] & 18) || (keys[9] & 128) || (keys[10] & 7));
+    if (xreg(0, 0, 0, 0xFFFF) < 0)
+        perror("Hunting keyboard");
+    /* Console keystrokes generated during direct keyboard play must not answer menus. */
+    while (RIA.ready & 0x40)
+        if (getchar() == EOF)
+            break;
+    show_scene(g, SCENE_PRAIRIE);
+    if (gained > 100)
+        gained = 100;
     if (g->food + gained > FOOD_CAP)
         gained = FOOD_CAP - g->food;
     if (gained < 0)
         gained = 0;
     g->food += (int)gained;
+    printf("\n");
     printf(msg_get(74), kills, gained);
     g->said = true;
     rest_days(g, 1);
