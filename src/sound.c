@@ -20,7 +20,7 @@ static void opl_poke(unsigned reg, unsigned char val)
     xram0_write(XRAM_OPL + reg, &val, 1);
 }
 
-enum { VOICE_BANJO, VOICE_BUGLE, VOICE_RIVER, VOICE_CREAK, VOICE_SHOT };
+enum { VOICE_BANJO, VOICE_BUGLE, VOICE_RIVER, VOICE_CREAK, VOICE_SHOT, VOICE_DRIVER };
 
 /* Paired operator registers followed by channel feedback. Only channels 0 and 1
    are used, whose modulator/carrier slots are c and c+3. */
@@ -33,8 +33,9 @@ static void patch(uint8_t c, uint8_t voice)
         {0x21, 0x21, 0x1A, 0x08, 0xF9, 0xD6, 0xF0, 0xF4, 0, 0, 0x0A},
         {0x21, 0x21, 0x24, 0x08, 0xA3, 0x92, 0x34, 0x27, 0, 0, 0x04},
         {0x01, 0x02, 0x08, 0x10, 0x84, 0x74, 0x47, 0x47, 0, 0, 0x0E},
-        {0x20, 0x21, 0x0A, 0x05, 0x28, 0x4A, 0x22, 0x24, 0, 0, 0x0E},
+        {0x01, 0x01, 0x08, 0x14, 0xB4, 0xD5, 0x46, 0x56, 0, 0, 0x0E},
         {0x0F, 0x01, 0x00, 0x08, 0xF8, 0xF8, 0x08, 0x08, 0, 0, 0x0E},
+        {0x22, 0x61, 0x18, 0x0C, 0xE2, 0xC2, 0x47, 0x27, 0, 0, 0x06},
     };
     uint8_t i;
 
@@ -43,6 +44,7 @@ static void patch(uint8_t c, uint8_t voice)
 }
 
 static unsigned char pitch[2];
+static uint8_t travel_step;
 
 static void note_on(uint8_t c, unsigned hz)
 {
@@ -79,13 +81,14 @@ void sound_init(void)
     xram0_set(XRAM_OPL, 0, 256);
     patch(TITLE_CHANNEL, VOICE_BANJO);
     patch(EFFECT_CHANNEL, VOICE_RIVER);
+    travel_step = 0;
 }
 
 /* Plays the tune of a landmark, read from the ROM:tunes asset (src/tunes.dat). Its
    entry is three bytes, the offset and count of the notes, and each note is three bytes. */
 #define LANDMARK_COUNT 18
 #define EVENT_COUNT 20
-#define EFFECT_COUNT 8
+#define EFFECT_COUNT 10
 #define EFFECT_BASE (LANDMARK_COUNT + EVENT_COUNT)
 #define TUNE_ENTRIES (EFFECT_BASE + EFFECT_COUNT)
 #define MAX_TUNE_NOTES 20
@@ -170,6 +173,10 @@ void sound_effect(sfx_t sfx)
     case SFX_CREAK:
         patch(EFFECT_CHANNEL, VOICE_CREAK);
         play_tune(EFFECT_CHANNEL, EFFECT_BASE + 2);
+        if (!(++travel_step & 3)) {
+            patch(EFFECT_CHANNEL, VOICE_DRIVER);
+            play_tune(EFFECT_CHANNEL, EFFECT_BASE + 8 + ((travel_step >> 2) & 1));
+        }
         break;
     case SFX_DEATH:
         play_tune(TITLE_CHANNEL, EFFECT_BASE + 3);

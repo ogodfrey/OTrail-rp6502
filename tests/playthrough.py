@@ -153,7 +153,7 @@ def policy(text):
     recent = text[-1200:]
     weeks = text.count("Miles: ")
 
-    if tail.endswith("Press Enter to continue."):
+    if tail.endswith(("Press Enter to continue.", "Press Enter to return to the trail.")):
         return ""
     if tail.endswith("M for the menu: "):
         return ""

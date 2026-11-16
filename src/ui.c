@@ -38,16 +38,21 @@ int ui_ask_int(const char *prompt, int min, int max)
         value = strtol(line, &end, 10);
         if (end != line && *end == '\0' && value >= min && value <= max)
             return (int)value;
-        printf("Enter a number from %d to %d.\n", min, max);
+        printf(msg_label(150), min, max);
     }
+}
+
+void ui_pause_prompt(const char *prompt)
+{
+    char line[64];
+
+    fputs(prompt, stdout);
+    ui_read_line(line, sizeof(line));
 }
 
 void ui_pause(void)
 {
-    char line[64];
-
-    fputs("\nPress Enter to continue.", stdout);
-    ui_read_line(line, sizeof(line));
+    ui_pause_prompt(msg_get(201));
 }
 
 void ui_print_money(long cents)

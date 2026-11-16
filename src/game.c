@@ -37,8 +37,13 @@
 #define MSG_WAIT_DAY 171
 #define MSG_ACTION 172
 #define MSG_LEADER_NAME 183
+#define AFFLICTION_MEASLES 6
 #define AFFLICTION_DYSENTERY 7
 #define MSG_STORE_LABEL 184
+#define MSG_MONTH 204
+#define MSG_WEATHER 216
+#define MSG_AFFLICTION 226
+#define MSG_ITEM_LABEL 235
 #define FERRY_CENTS 500L
 #define TOLL_BASE_CENTS 500L
 #define TOLL_PER_OX_CENTS 50L
@@ -113,7 +118,8 @@ typedef struct {
 
 typedef struct {
     char name[NAME_LEN];
-    int affl;
+    int8_t affl;
+    bool had_measles;
     int affl_days;
 } member_t;
 
@@ -217,15 +223,6 @@ static const uint8_t climate_rain[5][12] = {
 };
 
 static const uint8_t month_len[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-static const char *const month_name[12] = {
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"};
-static const char *const weather_name[10] = {
-    "very cold", "cold", "cool", "warm", "hot", "very hot",
-    "rainy", "snowy", "very rainy", "very snowy"};
-static const char *const affliction_name[9] = {
-    "a broken arm", "a broken leg", "a snakebite", "exhaustion", "typhoid",
-    "cholera", "measles", "dysentery", "a fever"};
 static const char *const part_name[PART_COUNT] = {"wheel", "axle", "tongue"};
 static const char *const part_plural[PART_COUNT] = {"wagon wheels", "wagon axles", "wagon tongues"};
 
@@ -234,9 +231,6 @@ static const long occ_money[3] = {160000L, 80000L, 40000L};
 static const char *const default_names[PARTY_SIZE - 1] = {"Amos", "Clara", "Ned", "Hattie"};
 
 /* Base unit prices in cents: Matt's price, and the value used for trading. */
-static const char *const item_label[ITEM_COUNT] = {
-    "Oxen (each)", "Clothing (set)", "Ammo (box of 20)",
-    "Wagon wheel", "Wagon axle", "Wagon tongue", "Food (per pound)"};
 static const uint16_t fort_base_cents[ITEM_COUNT] = {2000, 1000, 200, 1000, 1000, 1000, 20};
 static const uint16_t trade_cents[ITEM_COUNT] = {2000, 1000, 10, 1000, 1000, 1000, 20};
 static const char *const item_plural[ITEM_COUNT] = {
@@ -359,7 +353,7 @@ static void member_die(game_t *g, int i, const char *cause)
 {
     char buf[80];
 
-    sprintf(buf, "%s has died of %s.", g->party[i].name, cause);
+    sprintf(buf, msg_get(194), g->party[i].name, cause);
     say(g, buf);
     sound_effect(SFX_DEATH);
     g->party[i] = g->party[g->np - 1];
@@ -374,7 +368,9 @@ static void afflict(game_t *g, int i, int kind)
 
     g->party[i].affl = kind;
     g->party[i].affl_days = kind <= 1 ? 30 : 10;
-    sprintf(buf, "%s has %s.", g->party[i].name, affliction_name[kind]);
+    if (kind == AFFLICTION_MEASLES)
+        g->party[i].had_measles = true;
+    sprintf(buf, msg_get(195), g->party[i].name, msg_label(MSG_AFFLICTION + kind));
     say(g, buf);
 }
 
@@ -388,7 +384,7 @@ static void drown(game_t *g, long p)
     }
 }
 
-static void report_loss(game_t *g, bool *head, const char *heading, int n, const char *label)
+static void report_items(game_t *g, bool *head, const char *heading, int n, const char *label)
 {
     if (!*head) {
         say(g, heading);
@@ -405,7 +401,7 @@ static void lose_count(game_t *g, int *count, long p, const char *label, const c
         return;
     n = ranged(1, *count);
     *count -= n;
-    report_loss(g, head, heading, n, label);
+    report_items(g, head, heading, n, label);
 }
 
 static bool lose_goods(game_t *g, long p, const char *heading)
@@ -433,7 +429,7 @@ static bool lose_oxen(game_t *g, long p, const char *heading)
         }
     }
     if (n)
-        report_loss(g, &head, heading, n, "oxen");
+        report_items(g, &head, heading, n, "oxen");
     return n > 0;
 }
 
@@ -498,20 +494,23 @@ static void member_afflict_random(game_t *g)
 
 static void illness(game_t *g)
 {
-    int i = member_pick(g);
+    int i = member_pick(g), kind;
 
     g->hr = FP(20.0);
     if (g->party[i].affl >= 0) {
         bool leader_dysentery = i == 0 && g->party[i].affl == AFFLICTION_DYSENTERY;
 
-        member_die(g, i, g->party[i].affl >= 3 ? affliction_name[g->party[i].affl] : "illness");
+        member_die(g, i, g->party[i].affl >= 3 ? msg_label(MSG_AFFLICTION + g->party[i].affl) : "illness");
         if (leader_dysentery) {
             g->dysentery_end = true;
             g->np = 0;
         }
         return;
     }
-    afflict(g, i, ranged(3, 8));
+    kind = ranged(3, g->party[i].had_measles ? 7 : 8);
+    if (g->party[i].had_measles && kind >= AFFLICTION_MEASLES)
+        kind++;
+    afflict(g, i, kind);
 }
 
 static void broken_wagon(game_t *g)
@@ -520,7 +519,7 @@ static void broken_wagon(game_t *g)
     char buf[80];
 
     show_scene(g, SCENE_BROKEN_WAGON);
-    sprintf(buf, "A wagon %s is broken.", part_name[p]);
+    sprintf(buf, msg_get(196), part_name[p]);
     say(g, buf);
     sound_effect(SFX_BROKEN);
     if (ui_ask_int(msg_get(3), 1, 2) == 1 && chance(FP(0.5)))
@@ -543,29 +542,36 @@ static void fire(game_t *g)
 
 static void abandoned_wagon(game_t *g)
 {
+    static uint8_t loot[5];
     bool found = false;
-    int n, p;
+    int n;
+    uint8_t p;
 
+    memset(loot, 0, sizeof loot);
     if (chance(FP(0.5))) {
         n = ranged(1, 3);
         g->clothing += n;
-        found = true;
+        loot[0] = n;
     }
     if (chance(FP(0.5))) {
-        n = ranged(1, 3);
-        g->bullets += 21 * n;
-        found = true;
+        n = 21 * ranged(1, 3);
+        g->bullets += n;
+        loot[1] = n;
     }
     for (p = 0; p < PART_COUNT; p++) {
         if (chance(FP(0.5))) {
             n = ranged(1, 3);
             if (g->spares[p] + n <= PART_CAP) {
                 g->spares[p] += n;
-                found = true;
+                loot[p + 2] = n;
             }
         }
     }
-    say(g, found ? msg_get(MSG_FOUND_SUPPLIES) : msg_get(MSG_WAGON_EMPTY));
+    for (p = 0; p < 5; p++)
+        if (loot[p])
+            report_items(g, &found, msg_get(MSG_FOUND_SUPPLIES), loot[p], item_plural[p + 1]);
+    if (!found)
+        say(g, msg_get(MSG_WAGON_EMPTY));
 }
 
 static void thief(game_t *g)
@@ -842,7 +848,7 @@ static void run_event(game_t *g, int k)
             char buf[80];
 
             g->art = EVENT_PARTY_LOST;
-            sprintf(buf, "%s is lost.", g->party[member_pick(g)].name);
+            sprintf(buf, msg_get(197), g->party[member_pick(g)].name);
             say(g, buf);
             rest_days(g, ranged(1, 5));
             break;
@@ -1071,8 +1077,8 @@ static void draw_status(game_t *g, bool daily)
         scene_journey_marker((unsigned)(g->miles / FX));
     }
     ui_clear();
-    printf(msg_get(33), month_name[m], g->day, g->year, (int)(g->miles / FX));
-    printf(msg_get(34), weather_name[g->weather]);
+    printf(msg_get(33), msg_label(MSG_MONTH + m), g->day, g->year, (int)(g->miles / FX));
+    printf(msg_get(34), msg_label(MSG_WEATHER + g->weather));
     printf(msg_get(35), name, (int)((g->dist + FX / 2) / FX));
     printf(msg_get(36),
            health_word(g->health),
@@ -1087,7 +1093,7 @@ static void draw_status(game_t *g, bool daily)
     printf(msg_get(41));
     for (i = 0; i < g->np; i++) {
         if (g->party[i].affl >= 0)
-            printf(msg_get(42), g->party[i].name, affliction_name[g->party[i].affl]);
+            printf(msg_get(42), g->party[i].name, msg_label(MSG_AFFLICTION + g->party[i].affl));
         else
             printf(msg_get(43), g->party[i].name);
     }
@@ -1182,7 +1188,7 @@ static void fort_store(game_t *g)
         printf(msg_get(57));
         for (i = 0; i < ITEM_COUNT; i++) {
             item = store_order[i];
-            printf(msg_get(58), i + 1, item_label[item]);
+            printf(msg_get(58), i + 1, msg_label(MSG_ITEM_LABEL + item));
             ui_print_money((long)fort_base_cents[item] * mult / 4L);
             printf(msg_get(59));
         }
@@ -1267,21 +1273,37 @@ static void do_trade(game_t *g)
     } else {
         item_take(g, x, give);
         item_add(g, y, get);
-        sprintf(buf, "Trade complete. You gave %d %s.", give, item_plural[x]);
+        sprintf(buf, msg_get(198), give, item_plural[x]);
         say(g, buf);
     }
     rest_days(g, 1);
+}
+
+static long hunt_meat;
+static uint8_t hunt_kills;
+
+static int hunt_carry(const game_t *g)
+{
+    return imin(FOOD_CAP - g->food, hunt_meat < 100 ? (int)hunt_meat : 100);
+}
+
+static void hunt_status(const game_t *g)
+{
+    printf(msg_get(193), g->bullets, hunt_kills, hunt_meat, hunt_carry(g));
+    fflush(stdout);
 }
 
 static void do_hunt(game_t *g)
 {
     static const int weights[6][2] = {{1, 5}, {1, 3}, {60, 75},
                                      {50, 70}, {100, 200}, {850, 1000}};
-    int kills = 0;
-    uint8_t kind, x = 255, y = 0, ax = 78, ay = 56;
+    static uint8_t available[6] = {0, 1, 2};
+    static uint8_t kind[3], x[3], y[3];
+    static unsigned char keys[32];
+    uint8_t i, spawn, step, count = 3, ax = 78, ay = 56;
+    int carried, stocked;
     unsigned tick;
-    unsigned char frame, keys[32] = {0}, previous = 0;
-    long gained = 0;
+    unsigned char frame, previous = 0;
 
     if (g->bullets <= 0) {
         say(g, msg_get(72));
@@ -1299,47 +1321,73 @@ static void do_hunt(game_t *g)
     puts(msg_get(192));
 
     scene_hunt_clear();
+    hunt_meat = hunt_kills = 0;
+    hunt_status(g);
+    if (g->lm >= 4 && g->lm <= 12)
+        available[count++] = 3;
+    if (g->lm >= 7)
+        available[count++] = 4;
+    if (g->lm <= 6)
+        available[count++] = 5;
+    for (i = 0; i < 3; i++)
+        x[i] = 255;
     frame = ria_vsync();
-    kind = 0;
     for (tick = 0; tick < 300; tick++) {
         while ((unsigned char)(ria_vsync() - frame) < 6)
             ;
         frame = ria_vsync();
         xram0_read(keys, XRAM_KEYBOARD, sizeof keys);
-        if (keys[5] & 2) /* HID Escape, 0x29 */
+        if (keys[5] & 2) { /* HID Escape, 0x29 */
+            puts(msg_get(203));
             break;
-        if (x != 255)
-            scene_hunt_sprite(x, y, kind, true);
+        }
+        for (i = 0; i < 3; i++)
+            if (x[i] <= 152)
+                scene_hunt_sprite(x[i], y[i], kind[i], true);
         scene_hunt_sprite(ax, ay, 6, true);
         /* HID arrow keys 0x4F..0x52. */
-        if ((keys[10] & 1) && ax > 1) ax -= 2;
-        if ((keys[9] & 128) && ax < 154) ax += 2;
-        if ((keys[10] & 4) && ay > 3) ay -= 4;
-        if ((keys[10] & 2) && ay < 108) ay += 4;
-        if (x == 255 || x > 152) {
-            do {
-                kind = rnd(6);
-            } while ((kind == 3 && (g->lm < 4 || g->lm > 12)) ||
-                     (kind == 4 && g->lm < 7) || (kind == 5 && g->lm > 6));
-            x = 0;
-            y = rnd(24) * 4;
-        } else {
-            x += kind < 2 ? 3 : 2;
+        if ((keys[10] & 1) && ax >= 4) ax -= 4;
+        if ((keys[9] & 128) && ax <= 152) ax += 4;
+        if ((keys[10] & 4) && ay >= 16) ay -= 16;
+        if ((keys[10] & 2) && ay <= 96) ay += 16;
+        for (i = 0; i < 3; i++) {
+            if (x[i] > 152) {
+                kind[i] = available[(uint8_t)rnd(count)];
+                x[i] = tick == 0 ? i * 50 : 0;
+                spawn = rnd(8);
+                y[i] = i * 40 + (spawn & 3) * 4;
+                if (spawn & 4) {
+                    kind[i] |= HUNT_FACE_LEFT;
+                    x[i] = 152 - x[i];
+                }
+            } else {
+                step = (kind[i] & ~HUNT_FACE_LEFT) < 2 ? 3 : 2;
+                if (kind[i] & HUNT_FACE_LEFT)
+                    x[i] -= step;
+                else
+                    x[i] += step;
+            }
         }
         if ((keys[5] & 16) && !previous && g->bullets > 0) {
             g->bullets--;
             sound_shot();
-            if (x <= 152 && abs((int)ax - x) <= 3 && abs((int)ay - y) <= 10) {
-                gained += ranged(weights[kind][0], weights[kind][1]);
-                kills++;
-                x = 255;
-            }
-            printf(msg_get(193), g->bullets, kills);
-            fflush(stdout);
+            if (!scene_hunt_cover(ax + 2, ay + 8))
+                for (i = 0; i < 3; i++)
+                    if (x[i] <= 152 && (uint8_t)(ax - x[i] + 3) <= 6 &&
+                        (uint8_t)(ay - y[i] + 10) <= 20) {
+                        hunt_meat += ranged(weights[kind[i] & ~HUNT_FACE_LEFT][0],
+                                            weights[kind[i] & ~HUNT_FACE_LEFT][1]);
+                        hunt_kills++;
+                        x[i] = 255;
+                        break;
+                    }
+            hunt_status(g);
         }
         previous = keys[5] & 16; /* HID Space, 0x2C: one shot per press. */
-        if (x <= 152)
-            scene_hunt_sprite(x, y, kind, false);
+        for (i = 0; i < 3; i++)
+            if (x[i] <= 152)
+                scene_hunt_sprite(x[i], y[i], kind[i], false);
+        scene_hunt_trees();
         scene_hunt_sprite(ax, ay, 6, false);
     }
     do {
@@ -1352,17 +1400,14 @@ static void do_hunt(game_t *g)
         if (getchar() == EOF)
             break;
     show_scene(g, SCENE_PRAIRIE);
-    if (gained > 100)
-        gained = 100;
-    if (g->food + gained > FOOD_CAP)
-        gained = FOOD_CAP - g->food;
-    if (gained < 0)
-        gained = 0;
-    g->food += (int)gained;
-    printf("\n");
-    printf(msg_get(74), kills, gained);
-    g->said = true;
+    carried = hunt_carry(g);
+    g->food += carried;
+    stocked = g->food;
     rest_days(g, 1);
+    printf("\n");
+    printf(msg_get(74), hunt_kills, hunt_meat, carried, stocked - g->food, g->food);
+    ui_pause_prompt(msg_get(202));
+    g->said = false;
 }
 
 static void print_help(int first, int count)
@@ -1418,7 +1463,7 @@ static bool action_menu(game_t *g, bool at_landmark)
         bool store;
 
         landmark_read(g->lm, &here, NULL);
-        store = here.type == LM_STORE;
+        store = at_landmark && here.type == LM_STORE;
         if (g->said) {
             ui_pause();
             g->said = false;
@@ -1510,7 +1555,7 @@ static void announce_next(game_t *g)
     landmark_t lm;
 
     landmark_read(legs[g->leg].to, &lm, name);
-    sprintf(buf, "The next landmark is %s, %d miles away.",
+    sprintf(buf, msg_get(199),
             name, (int)legs[g->leg].miles);
     say(g, buf);
     grave_select(g);
@@ -1771,7 +1816,7 @@ static bool arrive(game_t *g)
     g->lm = legs[g->leg].to;
     g->visited |= 1UL << g->lm;
     landmark_read(g->lm, &lm, name);
-    sprintf(buf, "You have reached %s.", name);
+    sprintf(buf, msg_get(200), name);
     if (lm.arrive != NO_SCENE) {
         if (lm.type == LM_STORE)
             sound_effect(SFX_FORT);
@@ -1890,7 +1935,7 @@ static void show_arrival(game_t *g, long pts)
     const char *rating = pts >= 6000 ? "Trail guide" : pts >= 3000 ? "Adventurer" : "Greenhorn";
     ui_clear();
     printf(msg_get(133));
-    printf(msg_get(134), month_name[g->month], g->day, g->year);
+    printf(msg_get(134), msg_label(MSG_MONTH + g->month), g->day, g->year);
     printf(msg_get(135), g->np, PARTY_SIZE);
     printf(msg_get(136), pts);
     printf(msg_get(137), rating);

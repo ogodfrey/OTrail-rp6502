@@ -50,6 +50,9 @@ typedef enum
 void scene_draw(scene_t scene, bool winter);
 void scene_journey_marker(unsigned miles);
 void scene_hunt_clear(void);
+#define HUNT_FACE_LEFT 0x80
 void scene_hunt_sprite(uint8_t x, uint8_t y, uint8_t kind, bool erase);
+void scene_hunt_trees(void);
+bool scene_hunt_cover(uint8_t x, uint8_t y);
 
 #endif

@@ -116,9 +116,14 @@ python tests/render_scenes.py
 ```
 
 `tests/gameplaytest.py` checks hunting hits, misses, one shot per Space press,
-timeout, ammunition, the 100-pound carry limit and wagon capacity. It also checks
-recovery notices, sprite bounds, high-note pitch, and restoration of the banjo
-voice after bugle calls. After building Release, it also drives real HID aiming,
+timeout, ammunition, faster crosshair movement, three simultaneous targets,
+tree cover, live meat totals, the 100-pound carry limit, wagon capacity,
+opposite-direction travel, edge respawns, and mirrored animal sprites. It also checks
+post-hunt food accounting, the return prompt, actual abandoned-wagon supplies,
+store availability only at store landmarks, per-member measles immunity,
+recovery notices, sprite bounds, high-note pitch, restoration of the banjo
+voice after bugle calls, and driver-call cadence without changing game randomness
+or the music channel. After building Release, it also drives real HID aiming,
 firing, Escape, and the return to the menu in the v0.43 emulator.
 
 ```bash
@@ -225,7 +230,8 @@ the next landmark. Then you choose:
 5. **Stop to rest**: 0 to 9 days.
 6. **Attempt to trade**: one day, whatever the outcome.
 7. **Hunt for food**: on the trail only, one day.
-8. **Buy supplies**: at a fort. Matt's store is only at Independence.
+8. **Buy supplies**: only while stopped at a fort or Independence, never between
+   landmarks. Matt's store is only at Independence.
 9. **Look at the map**: lists the 18 landmarks, marks the ones you've reached,
    and shows the current position and miles traveled.
 10. **Talk to people**: at a landmark only. Each visit hears the next of three
@@ -258,6 +264,9 @@ chosen while others live. A member dies of an illness that strikes someone who
 is already sick, or drowns in a river. The game ends when everyone is dead.
 When an affliction expires, a bright green message names the recovered member.
 It appears once on recovery, not every day that the member remains healthy.
+Each member can catch measles only once per playthrough. Their immunity remains
+after recovery; other members can still catch it, and other illnesses remain
+possible. Starting a new game resets this immunity.
 
 ### Random events
 
@@ -280,6 +289,10 @@ yellow, so it stands out from the rest of the trail messages. The effects are:
 * A fire, a lost member, or an ox that wanders off.
 * An abandoned wagon or a thief.
 * Bad water, very little water, or inadequate grass.
+
+Abandoned wagons list the actual quantities recovered: clothing, bullets, and
+spare wagon parts. Spares that do not fit the three-per-type limit are not added
+or listed. If nothing can be recovered, the wagon is reported empty.
 
 ### Rivers
 
@@ -321,10 +334,24 @@ from the file when each leg starts.
 
 Hunting is a 30-second arcade challenge in the picture area. Press Enter after
 the instructions, use the arrow keys to move the crosshair, and press Space to
-shoot a moving animal. Release Space before firing again. Escape returns early;
-wait for held keys to be released before returning to the trail. Each shot costs
+shoot a moving animal. Release Space before firing again. Escape returns early
+and displays a leaving message; release held keys, review the results, then
+press Enter at the explicit return-to-trail prompt. Each shot costs
 one bullet, whether it hits or misses. A hunt costs one day, even if you leave
 early. With no bullets, hunting is refused without spending a day.
+
+Three animals move through separate lanes at the same time. Each appearance
+randomly selects left-to-right or right-to-left travel; animals enter from that
+side and face their direction of movement. The crosshair moves
+16 pixels per update horizontally or vertically, faster than the quickest
+animals' 12 pixels per update. Trees provide cover: a shot aimed at a tree is
+blocked, even when an animal is behind it. Move the crosshair to an exposed part
+of the animal or wait for it to leave cover.
+
+The live tally starts at zero and updates after each shot. **Meat** is the total
+weight earned from all animals hit during this hunt. **Carrying** is how much
+will return to the wagon, capped at 100 pounds and the wagon's remaining food
+capacity. A miss or a shot into a tree spends a bullet without adding meat.
 
 The animals depend on where you are:
 
@@ -337,6 +364,10 @@ The animals depend on where you are:
 As in the Apple II game, you can carry at most 100 pounds back from each hunt.
 Meat is also capped so that food does not go above 2000 pounds. The day's normal
 food consumption happens after the meat is added.
+The results separately show animals hit, total harvested, meat carried, food
+eaten that day, and the remaining wagon food. Five people on filling rations eat
+15 pounds a day: harvesting 30 pounds of small game therefore adds only 15
+pounds to the wagon's food.
 
 ### Trading
 
@@ -361,8 +392,9 @@ from. The list starts empty.
 These parts of the Apple II game are missing or simplified here:
 
 * **Hunting** now has moving animal silhouettes and aimed shots rather than
-  random hit chances. It uses a crosshair and one animal at a time, not the
-  Apple II's walking hunter, directional bullets, obstacles, and multiple animals.
+  random hit chances, with three simultaneous animals and shot-blocking trees.
+  It still uses a crosshair rather than the Apple II's walking hunter and
+  directional bullets.
 * **The Columbia raft** is three random hazards with the spec's losses. It is
   not the arcade game with its arrow-key steering.
 * **Scene graphics** are hand-drawn pictures in 16 colors. They are not the
@@ -390,8 +422,8 @@ is the reference for comparison, rather than later DOS or Windows editions.
 1. **Raft steering:** the largest remaining arcade gap. Consider real-time
    left/right steering and collision-based losses next, instead of three
    unavoidable random hazards.
-2. **Hunting depth:** consider a walking hunter, directional projectiles,
-   obstacles, and several animals once the small arcade loop is proven on hardware.
+2. **Hunting depth:** consider a walking hunter and directional projectiles;
+   multiple animals and tree cover are now implemented.
 3. **Balance and route audit:** compare river risks, illness/death rules, and leg
    lengths against an Apple II playthrough before changing their formulas. The
    default route currently totals 1871 miles via Barlow Road, despite the
@@ -412,13 +444,17 @@ whose OPL2 core was tested against YM3812-LLE. Update board firmware to v0.43
 for matching audio and its cleaner hardware output.
 
 Separate FM patches provide plucked banjo, sustained brass, river effects,
-wooden creaks, and hunting gunshots. Notes above the block-4 pitch range select
+wooden creaks, hunting gunshots, and wordless driver calls. Notes above the block-4 pitch range select
 a higher octave block rather than overflowing the frequency number, and notes
 have a one-frame key-off gap so repeated pitches retrigger.
 
 Sound effects play for river crossings and arriving at a fort. On each travel day when the wagon moves, a
-wheel creak plays: wooden friction on OPL2 channel 1, with its patch set in `src/sound.c` and its
-notes in `src/tunes.dat`. Each landmark from the Kansas River on has its own bugle tune, played when
+wheel creak plays: uneven, percussive scrapes and a low groan on OPL2 channel 1,
+with its patch set in `src/sound.c` and its notes streamed from `src/tunes.dat`.
+Every fourth moving day adds one of two alternating synthesized ox-driving
+calls. These are retro FM yelps, not recorded speech; their private counter does
+not consume game randomness or alter the music channel.
+Each landmark from the Kansas River on has its own bugle tune, played when
 you arrive; the tunes are in `src/tunes.dat` and are read from disk on arrival. Each of the
 six forts has its own march, which follows the brass fort fanfare. When you reach
 Willamette Valley, a bugle call plays.
@@ -465,9 +501,9 @@ same file.
 | `src/main.c`                 | Video setup, title screen, and the high scores.                                                   |
 | `src/game.c`, `src/game.h`   | Rules: party, supplies, weather, health, events, rivers, trade, and scoring.                      |
 | `src/scene.c`, `src/scene.h` | Decodes scenes into the XRAM bitmap and sets the palette.                                         |
-| `src/talk.c`, `src/talk.h`   | Talk to people: reads the talk asset without heap-backed stdio and wraps each quote.               |
+| `src/talk.c`, `src/talk.h`   | Talk to people: reads the talk asset without heap-backed stdio and wraps each quote.              |
 | `src/talk.txt`               | The talk asset: landmark, speaker, and quote on each line.                                        |
-| `src/msg.c`, `src/msg.h`     | Looks up a game message in the msg asset by its number.                                           |
+| `src/msg.c`, `src/msg.h`     | Streams numbered ROM messages and short labels into separate reusable buffers.                    |
 | `src/messages.txt`           | The messages, one per line: line number is the message id. Escapes: `\n` and `\\`.                |
 | `src/messages.dat`           | The msg asset: 80-byte records, one message each, written by `assets/make_messages.py`.           |
 | `src/sound.c`, `src/sound.h` | OPL2 sound: the title tune, banjo riffs, landmark tunes, the ditty, and short effects.            |
@@ -490,7 +526,7 @@ same file.
 | `assets/check_memory.py`     | Checks the stack room after linking. Fails the build below `OREGON_MIN_STACK` bytes.              |
 | `assets/make_journey.py`     | Makes the journey map art and the route from the dashboard image.                                 |
 | `tests/playtest.py`          | The emulator smoke test.                                                                          |
-| `tests/talktest.py`          | All dialogue records on the host and conversation/menu regression in the emulator.                 |
+| `tests/talktest.py`          | All dialogue records on the host and conversation/menu regression in the emulator.                |
 | `tests/playthrough.py`       | The host playthrough: plays a full game and saves the answers.                                    |
 | `tests/playthrough.txt`      | The answers from the saved playthrough, used by `--replay`.                                       |
 | `tests/render_scenes.py`     | Decodes scenes on the host and compares them with the art.                                        |

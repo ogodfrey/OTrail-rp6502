@@ -2,6 +2,7 @@
 #include <rp6502.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 #include <fcntl.h>
 #include <rp6502.h>
 #include <stdio.h>
@@ -34,7 +35,7 @@ void scene_hunt_clear(void)
     xram0_set(XRAM_SCENE, 0, SCENE_BYTES);
 }
 
-/* Original silhouettes, two pixels per bit. X is in four-pixel units. */
+/* Original silhouettes, two pixels per bit. X uses four-pixel units; Y is even. */
 void scene_hunt_sprite(uint8_t x, uint8_t y, uint8_t kind, bool erase)
 {
     static const unsigned char shapes[7][8] = {
@@ -46,17 +47,28 @@ void scene_hunt_sprite(uint8_t x, uint8_t y, uint8_t kind, bool erase)
         {0x1E, 0x7F, 0xFF, 0xFF, 0xFE, 0x7C, 0x6C, 0x48},
         {0x18, 0x18, 0, 0xC3, 0xC3, 0, 0x18, 0x18},
     };
-    uint8_t row, bit;
-    unsigned char pixels[8], bits;
+    uint8_t row, bit, shape = kind & ~HUNT_FACE_LEFT;
+    uint8_t flip = kind & HUNT_FACE_LEFT ? 7 : 0;
+    unsigned char bits, color = shape == 6 ? 0x44 : 0x66;
+    unsigned dest = XRAM_SCENE + y * SCENE_ROW_BYTES + x * 2u;
 
-    if (x > 156 || y > 112 || kind > 6)
+    if (x > 156 || y > 112 || shape > 6)
         return;
+    if (erase)
+        memset(copy_buf, 0, 8);
     for (row = 0; row < 8; row++) {
-        bits = erase ? 0 : shapes[kind][row];
-        for (bit = 0; bit < 8; bit++)
-            pixels[bit] = bits & (128 >> bit) ? (kind == 6 ? 0x44 : 0x66) : 0;
-        xram0_write(XRAM_SCENE + (y + row * 2) * SCENE_ROW_BYTES + x * 2u, pixels, 8);
-        xram0_write(XRAM_SCENE + (y + row * 2 + 1) * SCENE_ROW_BYTES + x * 2u, pixels, 8);
+        if (!erase) {
+            bits = shapes[shape][row];
+            xram0_read(copy_buf, dest, 8);
+            for (bit = 0; bit < 8; bit++) {
+                if (bits & 128)
+                    copy_buf[bit ^ flip] = color;
+                bits <<= 1;
+            }
+        }
+        xram0_write(dest, copy_buf, 8);
+        xram0_write(dest + SCENE_ROW_BYTES, copy_buf, 8);
+        dest += 2 * SCENE_ROW_BYTES;
     }
 }
 
@@ -153,6 +165,42 @@ static void fill_bytes(int row, int xb, int count, unsigned char color)
     if (count > SCENE_ROW_BYTES - xb)
         count = SCENE_ROW_BYTES - xb;
     xram0_set(XRAM_SCENE + row * SCENE_ROW_BYTES + xb, pair, count);
+}
+
+static uint8_t hunt_tree_width(uint8_t row)
+{
+    return row < 24 ? row / 8 + 1 : 1;
+}
+
+static const uint8_t hunt_tree_x[3] = {30, 80, 130};
+static const uint8_t hunt_tree_y[3] = {8, 40, 72};
+
+void scene_hunt_trees(void)
+{
+    uint8_t i, row, half;
+
+    for (i = 0; i < 3; i++)
+        for (row = 0; row < 32; row++) {
+            half = hunt_tree_width(row);
+            fill_bytes(hunt_tree_y[i] + row, (hunt_tree_x[i] - half) * 2,
+                       half * 4, row < 24 ? 7 : 10);
+        }
+}
+
+/* X uses four-pixel units, just like scene_hunt_sprite. Test the aiming point. */
+bool scene_hunt_cover(uint8_t x, uint8_t y)
+{
+    uint8_t i, row, half;
+
+    for (i = 0; i < 3; i++) {
+        row = y - hunt_tree_y[i];
+        if (row < 32) {
+            half = hunt_tree_width(row);
+            if ((uint8_t)(x + half - hunt_tree_x[i]) < half * 2)
+                return true;
+        }
+    }
+    return false;
 }
 
 /* Draws the wagon marker on the journey map, at the point of the route that

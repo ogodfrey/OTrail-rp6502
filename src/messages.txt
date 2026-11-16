@@ -72,7 +72,7 @@ An emigrant wants %d %s and will trade you %d %s.\n
 You don't have this.
 You have no bullets.
 How many bullets to use? (0 to cancel) 
-You shot %d animals and brought back %ld pounds of meat.\n
+Animals %d; harvested %ld lb; carried %d lb.\nAte %d lb; food now %d lb.\n
 1) Steady   2) Strenuous   3) Grueling\n
 Pace: 
 1) Filling   2) Meager   3) Bare-bones\n
@@ -159,7 +159,7 @@ Rations set how much each person eats, and how well they stay healthy.\n
   Meager: 2 pounds a day each, more wear.\n
   Bare-bones: 1 pound a day each, most wear.\n
 Enter to keep traveling, M for the menu: 
-You found supplies in an abandoned wagon.
+Supplies found in the abandoned wagon:
 The abandoned wagon is empty.
 One of the oxen has died.
 One of the oxen is injured.
@@ -190,5 +190,53 @@ Wagon wheel
 Wagon axle
 Wagon tongue
 [92m%s has recovered and is healthy again.[39m\n
-\nHUNT: arrows aim, Space fires, Esc returns. You have 30 seconds.
-Bullets %d   Animals %d\n
+\nHUNT: arrows aim, Space fires, Esc returns. Trees block shots. 30 seconds.
+Bullets %d  Animals %d  Meat %ld lb  Carrying %d lb (max 100)\n
+%s has died of %s.
+%s has %s.
+A wagon %s is broken.
+%s is lost.
+Trade complete. You gave %d %s.
+The next landmark is %s, %d miles away.
+You have reached %s.
+\nPress Enter to continue.
+\nPress Enter to return to the trail.
+Leaving the hunt. Release the keys to return to the trail.
+January
+February
+March
+April
+May
+June
+July
+August
+September
+October
+November
+December
+very cold
+cold
+cool
+warm
+hot
+very hot
+rainy
+snowy
+very rainy
+very snowy
+a broken arm
+a broken leg
+a snakebite
+exhaustion
+typhoid
+cholera
+measles
+dysentery
+a fever
+Oxen (each)
+Clothing (set)
+Ammo (box of 20)
+Wagon wheel
+Wagon axle
+Wagon tongue
+Food (per pound)

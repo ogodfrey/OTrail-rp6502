@@ -11,6 +11,7 @@ wait "HUNT:" 600
 wait "Press Enter to continue." 60
 type "\r" 30
 run 30
+wait "Meat 0 lb  Carrying 0 lb" 60
 mark
 press right up
 run 60
@@ -20,12 +21,15 @@ press space
 run 12
 release space
 wait "Bullets 99" 60
+expect "Meat 0 lb  Carrying 0 lb"
 press escape
 run 12
+wait "Leaving the hunt." 60
 release escape
-wait "Press Enter to continue." 180
+wait "Press Enter to return to the trail." 180
 type "\r" 60
 wait "8) Hunt for food" 180
-type "10\r1\r\r3\r" 180
+wait "9) Give up the journey" 60
+type "9\r1\r\r3\r" 180
 wait exit 600
 expect exit 0
