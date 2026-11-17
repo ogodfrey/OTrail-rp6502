@@ -9,31 +9,29 @@ import wave
 import playthrough as pt
 
 
-def check_sampled_calls(build):
-    with tempfile.TemporaryDirectory(prefix="oregon-voices-") as directory:
+def check_wagon_sound(build):
+    with open(os.path.join(pt.ROOT, "src", "wagon.pcm"), "rb") as source:
+        samples = source.read()
+    tail = samples[((len(samples) - 1) // 512) * 512:]
+    with tempfile.TemporaryDirectory(prefix="oregon-wagon-") as directory:
         commands = [
             "seed 42",
             'wait "Choose: " 600',
             r'type "1\r1\rAlice\r\r\r\r\r1\r1\r3\r2\r600\r3\r5\r4\r5\r0\r\r" 600',
             'wait "9) Talk to people" 600',
         ]
-        for i, name in enumerate(("hyah", "getalong")):
+        for i in range(2):
             if i:
                 commands.append('wait "M for the menu: " 600')
-            # Host tests cover cadence; force each upcoming call for PCM capture.
-            commands.append(f"poke travel_step {3 + i * 4}")
             if not i:
                 commands.append("key 1")
-            commands += ["key enter", f'wav "{name}.wav" 180']
-            with open(os.path.join(pt.ROOT, "src", name + ".pcm"), "rb") as source:
-                samples = source.read()
-            tail = samples[((len(samples) - 1) // 512) * 512:]
+            commands += ["key enter", f'wav "wagon-{i}.wav" 180']
             for offset in range(0, len(tail), 32):
                 commands.append(
                     f"peek xram:XRAM_PCM+{offset} "
                     + " ".join(map(str, tail[offset:offset + 32])))
-            commands.append('expect-not stderr "Driver audio"')
-        script = os.path.join(directory, "voices.script")
+            commands.append('expect-not stderr "Wagon audio"')
+        script = os.path.join(directory, "wagon.script")
         with open(script, "w", encoding="utf-8") as output:
             output.write("\n".join(commands) + "\n")
         result = subprocess.run(
@@ -41,15 +39,16 @@ def check_sampled_calls(build):
              "--script", script, "--memfill", "0"],
             cwd=directory, capture_output=True, text=True, timeout=90)
         assert result.returncode == 0, result.stdout + result.stderr
-        for name in ("hyah", "getalong"):
-            with wave.open(os.path.join(directory, name + ".wav"), "rb") as audio:
+        for i in range(2):
+            with wave.open(os.path.join(directory, f"wagon-{i}.wav"), "rb") as audio:
                 assert audio.getsampwidth() == 2
-                audio.setpos(int(audio.getframerate() * 0.6))
-                data = audio.readframes(int(audio.getframerate() * 0.2))
-            samples = struct.unpack("<" + "h" * (len(data) // 2), data)
-            rms = (sum(sample * sample for sample in samples) / len(samples)) ** 0.5
-            assert rms > 100, f"{name}: PCM voice was not audible after the creak"
-    print("OK: both PCM clips streamed to XRAM and present in emulator audio")
+                for start in (0.2, 1.5):
+                    audio.setpos(int(audio.getframerate() * start))
+                    data = audio.readframes(int(audio.getframerate() * 0.2))
+                    output = struct.unpack("<" + "h" * (len(data) // 2), data)
+                    rms = (sum(sample * sample for sample in output) / len(output)) ** 0.5
+                    assert rms > 100, f"wagon day {i + 1}: PCM silent at {start}s"
+    print("OK: full wagon sample streamed to XRAM and audible on consecutive travel days")
 
 
 def main():
@@ -119,7 +118,7 @@ def main():
              "--script", os.path.join(pt.ROOT, "tests", "hunt.script"), "--memfill", "0"],
             cwd=directory, capture_output=True, text=True, timeout=90, check=True)
     print("OK: emulator HID aiming, firing, Escape, menu return and clean exit")
-    check_sampled_calls(build)
+    check_wagon_sound(build)
 
 
 if __name__ == "__main__":

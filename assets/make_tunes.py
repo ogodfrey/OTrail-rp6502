@@ -82,13 +82,11 @@ TUNES = {
     36: [(262, 12), (0, 8), (247, 12), (220, 12), (0, 8), (196, 24)],
     # Inadequate grass: a thin, wavering tune, held long, like grass that will not feed the oxen.
     37: [(330, 16), (0, 8), (294, 16), (262, 12), (0, 8), (247, 28)],
-    # Sound effects: river (38), fort (39), wheel creak (40), death (41), arrival bugle (42),
-    # weekly riff (43), broken wagon (44). The creak's pitch wanders over a few notes; its
-    # OPL2 patch is set in sound.c. The death riff is sad, in a minor key.
+    # Sound effects: river (38), fort (39), death (41), arrival bugle (42),
+    # weekly riff (43), broken wagon (44). Slot 40 is unused; wagon audio is PCM.
+    # The death riff is sad, in a minor key.
     38: [(392, 4), (349, 4), (330, 4), (294, 6)],
     39: [(392, 6), (523, 6), (659, 6), (784, 18), (659, 6), (523, 18)],
-    # A light midrange squeak, rising and easing back without a bass growl.
-    40: [(330, 5), (370, 5), (415, 5), (392, 5), (349, 5)],
     41: [(440, 16), (392, 16), (349, 16), (330, 16), (294, 40)],
     # Original bugle call using the open horn's C/G harmonic series.
     42: [(392, 8), (392, 8), (523, 16), (0, 4), (659, 8), (784, 24),

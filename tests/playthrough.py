@@ -55,8 +55,7 @@ def build():
     shutil.copy(os.path.join(ROOT, "src", "talk.txt"), os.path.join(HOST, "rom_talk"))
     shutil.copy(os.path.join(ROOT, "src", "scenes.dat"), os.path.join(HOST, "rom_scenes"))
     shutil.copy(os.path.join(ROOT, "src", "tunes.dat"), os.path.join(HOST, "rom_tunes"))
-    shutil.copy(os.path.join(ROOT, "src", "hyah.pcm"), os.path.join(HOST, "rom_hyah"))
-    shutil.copy(os.path.join(ROOT, "src", "getalong.pcm"), os.path.join(HOST, "rom_getalong"))
+    shutil.copy(os.path.join(ROOT, "src", "wagon.pcm"), os.path.join(HOST, "rom_wagon"))
     with open(os.path.join(HOST, "rom_pcm"), "wb"):
         pass
     shutil.copy(os.path.join(ROOT, "src", "landmarks.dat"), os.path.join(HOST, "rom_landmarks"))

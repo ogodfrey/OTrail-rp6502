@@ -9,9 +9,8 @@ static unsigned frames, reads, mode, animal, random_calls;
 static unsigned max_hz, last_off;
 static bool sounded, bugle;
 static bool travel_audio;
-static unsigned creak_notes;
-static unsigned effect_off_frame, pcm_bytes, pcm_writes;
-static int expected_voice = -1;
+static unsigned pcm_bytes, pcm_writes;
+static int expected_wagon = -1;
 static const unsigned *event_rolls;
 static unsigned event_roll_count;
 static int aim_x, aim_y, target_x[3];
@@ -70,31 +69,7 @@ void xram0_write(unsigned dest, const void *src, unsigned count)
 {
     assert(dest + count <= sizeof ram);
     memcpy(ram + dest, src, count);
-    if (travel_audio) {
-        unsigned reg = dest - XRAM_OPL;
-        assert(count == 1);
-        assert(reg == 0x21 || reg == 0x24 || reg == 0x41 || reg == 0x44 ||
-               reg == 0x61 || reg == 0x64 || reg == 0x81 || reg == 0x84 ||
-               reg == 0xE1 || reg == 0xE4 || reg == 0xC1 ||
-               reg == 0xA1 || reg == 0xB1);
-        if (reg == 0xB1 && (ram[dest] & 0x20)) {
-            static const unsigned expected_hz[] = {330, 370, 415, 392, 349};
-            unsigned b = ram[dest];
-            unsigned f = ram[XRAM_OPL + 0xA1] | ((b & 3) << 8);
-            unsigned hz = (unsigned)((unsigned long)f * 49716 >> (20 - ((b >> 2) & 7)));
-            unsigned expected = expected_hz[creak_notes % 5];
-
-            assert(ram[XRAM_OPL + 0x21] == 0x03 && ram[XRAM_OPL + 0x24] == 0x01);
-            assert(ram[XRAM_OPL + 0x41] == 0x24 && ram[XRAM_OPL + 0x44] == 0x10);
-            assert(ram[XRAM_OPL + 0x61] == 0xA4 && ram[XRAM_OPL + 0x64] == 0xA5);
-            assert(ram[XRAM_OPL + 0x81] == 0x56 && ram[XRAM_OPL + 0x84] == 0x56);
-            assert(ram[XRAM_OPL + 0xC1] == 0x04);
-            assert(hz >= expected - 2 && hz <= expected);
-            creak_notes++;
-        }
-        if (reg == 0xB1 && !(ram[dest] & 0x20))
-            effect_off_frame = frames;
-    }
+    assert(!travel_audio); /* The wagon sample must not use either FM channel. */
     if (dest == XRAM_OPL + 0xB0 && count == 1) {
         unsigned b = ram[dest];
         if (b & 0x20) {
@@ -116,8 +91,7 @@ void xram0_write(unsigned dest, const void *src, unsigned count)
 int read_xram(unsigned xaddr, unsigned count, int fildes)
 {
     assert(xaddr == XRAM_PCM && count == PCM_CHUNK);
-    assert(expected_voice >= 0);
-    assert(frames - effect_off_frame >= 6);
+    assert(expected_wagon >= 0);
     return read(fildes, ram + xaddr, count);
 }
 
@@ -127,14 +101,14 @@ int write_xram(unsigned xaddr, unsigned count, int fildes)
     int n;
 
     assert(xaddr >= XRAM_PCM && xaddr + count <= XRAM_PCM + PCM_CHUNK);
-    assert(expected_voice >= 0);
+    assert(expected_wagon >= 0);
     if (pcm_writes++ % 4 == 0)
         return 0; /* A full PCM FIFO must not drop or duplicate samples. */
     if (count > sizeof expected)
         count = sizeof expected;
     n = write(fildes, ram + xaddr, count);
     assert(n > 0);
-    assert(read(expected_voice, expected, n) == n);
+    assert(read(expected_wagon, expected, n) == n);
     assert(memcmp(expected, ram + xaddr, n) == 0);
     pcm_bytes += n;
     return n;
@@ -534,22 +508,13 @@ int main(void)
         unsigned char end;
 
         pcm_bytes = pcm_writes = 0;
-        if (i % 4 == 3) {
-            expected_voice = open(i == 3 ? "rom_hyah" : "rom_getalong", O_RDONLY);
-            assert(expected_voice >= 0);
-        }
+        expected_wagon = open("rom_wagon", O_RDONLY);
+        assert(expected_wagon >= 0);
         sound_effect(SFX_CREAK);
-        assert(creak_notes == (i + 1) * 5);
-        if (i % 4 == 3) {
-            assert(pcm_bytes > 0 && pcm_writes > 0);
-            if (i == 7)
-                assert(pcm_bytes > 4096);
-            assert(read(expected_voice, &end, 1) == 0);
-            close(expected_voice);
-            expected_voice = -1;
-        } else {
-            assert(pcm_bytes == 0 && pcm_writes == 0);
-        }
+        assert(pcm_bytes > 4096 && pcm_writes > 0);
+        assert(read(expected_wagon, &end, 1) == 0);
+        close(expected_wagon);
+        expected_wagon = -1;
     }
     travel_audio = false;
     assert(random_calls == x);

@@ -123,11 +123,12 @@ post-hunt food accounting, the return prompt, actual abandoned-wagon supplies,
 store availability only at store landmarks, per-member measles immunity,
 recovery notices, sprite bounds, high-note pitch, restoration of the banjo
 voice after bugle calls, daily event-odds snapshots through event-triggered rest,
-per-leg fruit seasons across month boundaries, and driver-call cadence without
-changing game randomness or the music channel. PCM streaming is checked byte for
-byte with partial writes and a full FIFO. After building Release, it also drives real HID aiming,
-firing, Escape, and the return to the menu in the v0.43 emulator, and captures
-both sampled calls to check their XRAM data and non-silent audio.
+per-leg fruit seasons across month boundaries, and wagon-sample playback on every
+moving day without changing game randomness or either FM channel. PCM streaming
+is checked byte for byte with partial writes and a full FIFO. After building
+Release, it also drives real HID aiming, firing, Escape, and the return to the
+menu in the v0.43 emulator, and captures consecutive travel days to check the
+wagon sample's XRAM data and non-silent audio through the end of the clip.
 
 ```bash
 python tests/gameplaytest.py
@@ -453,27 +454,28 @@ whose OPL2 core was tested against YM3812-LLE. Update board firmware to v0.43
 for matching audio and its cleaner hardware output.
 
 Separate FM patches provide plucked banjo, sustained brass, river effects,
-wooden creaks, and hunting gunshots. Notes above the block-4 pitch range select
-a higher octave block rather than overflowing the frequency number, and notes
-have a one-frame key-off gap so repeated pitches retrigger, except for the
-wheel creak, which uses connected timing.
+and hunting gunshots. Notes above the block-4 pitch range select a higher octave
+block rather than overflowing the frequency number, and notes have a one-frame
+key-off gap so repeated pitches retrigger.
 
-Sound effects play for river crossings and arriving at a fort. On each travel day when the wagon moves, a
-wheel creak plays: a quieter midrange squeak with reduced FM feedback on OPL2 channel 1,
-with its patch set in `src/sound.c` and its notes streamed from `src/tunes.dat`.
-Every fourth moving day adds one of two alternating spoken ox-driving
-calls, "Hyah!" and "Get along!", after a brief pause. These prototype clips use
-the offline Windows Microsoft David Desktop text-to-speech voice, not an actor.
-`python assets/make_driver_calls.py` regenerates `src/hyah.pcm` and `src/getalong.pcm`
-on Windows; the generated clips are included so normal builds need no speech tools.
-Voice clips use half the prototype's initial amplitude (about 6 dB quieter)
-to balance them against the music, without changing OPL2 volume.
+Sound effects play for river crossings and arriving at a fort. On each travel day
+when the wagon moves, the supplied wagon recording plays once in full (about
+1.87 seconds), replacing both the synthesized wheel creak and the spoken driver
+calls. The original recording is in `assets/wagon.wav`; `src/wagon.pcm` is converted
+without normalization, preserving its volume and duration. Regenerate it with
+[FFmpeg](https://ffmpeg.org/):
+
+```powershell
+ffmpeg -y -i assets\wagon.wav -ar 11025 -ac 1 -f u8 src\wagon.pcm
+```
+
+The generated PCM is included, so normal builds do not need FFmpeg.
 The unsigned 8-bit, 11025 Hz mono samples stream from ROM through a 512-byte
 XRAM buffer at `$E100` to `PCM:11025,8,1`. The 4 KB playback FIFO belongs to the
 host, not 6502 RAM. Playback handles partial writes and waits for the clip to
 finish before continuing. Missing samples or an unavailable PCM device report
-an error instead of falling back to musical tones. The private travel counter
-does not consume game randomness or alter the music channel.
+an error instead of falling back to musical tones. Wagon playback does not
+consume game randomness or alter either FM channel. There are no spoken calls.
 Each landmark from the Kansas River on has its own bugle tune, played when
 you arrive; the tunes are in `src/tunes.dat` and are read from disk on arrival. Each of the
 six forts has its own march, which follows the brass fort fanfare. When you reach
@@ -526,13 +528,13 @@ same file.
 | `src/msg.c`, `src/msg.h`     | Streams numbered ROM messages and short labels into separate reusable buffers.                    |
 | `src/messages.txt`           | The messages, one per line: line number is the message id. Escapes: `\n` and `\\`.                |
 | `src/messages.dat`           | The msg asset: 80-byte records, one message each, written by `assets/make_messages.py`.           |
-| `src/sound.c`, `src/sound.h` | OPL2 music/effects and streamed PCM driver voices.                                                |
+| `src/sound.c`, `src/sound.h` | OPL2 music/effects and streamed PCM wagon audio.                                                 |
 | `src/ui.c`, `src/ui.h`       | Console helpers: line input, numbered prompts, pauses, and money formatting.                      |
 | `src/xram.h`                 | XRAM map: scene config, palette, bitmap, and VGA macros.                                          |
 | `src/help.txt`               | The help text stored in the ROM as the `help` asset.                                              |
 | `src/scenes.dat`             | The scenes asset: the thirty-eight pictures, both palettes, and the journey route.                |
 | `src/tunes.dat`              | The tunes asset: landmark and event tunes, read from disk when they play.                         |
-| `src/*.pcm`                  | Prototype spoken driver calls: 11025 Hz unsigned 8-bit mono.                                      |
+| `src/wagon.pcm`              | Recorded wagon sound: 11025 Hz unsigned 8-bit mono.                                               |
 | `src/landmarks.txt`          | The landmarks, one per line: name, type, legs, and the pictures at each.                          |
 | `src/landmarks.dat`          | The landmarks asset: 24-byte records, read from disk on arrival.                                  |
 | `src/events.txt`             | The event pictures, one per line in event order: event and picture.                               |
@@ -541,7 +543,7 @@ same file.
 | `assets/journey_route.bin`   | The 24-point route the wagon marker follows on the journey map.                                   |
 | `assets/make_scenes.py`      | Packs the scene pictures and the journey route into `src/scenes.dat`.                             |
 | `assets/make_tunes.py`       | Writes the landmark tunes into `src/tunes.dat`.                                                   |
-| `assets/make_driver_calls.py`| Generates prototype driver speech using the offline Windows David voice.                          |
+| `assets/wagon.wav`           | Original wagon recording, converted to `src/wagon.pcm` with FFmpeg.                              |
 | `assets/make_landmarks.py`   | Writes the landmarks from `src/landmarks.txt` into `src/landmarks.dat`.                           |
 | `assets/make_messages.py`    | Writes the game messages from `src/messages.txt` into `src/messages.dat`.                         |
 | `assets/make_events.py`      | Writes the event pictures from `src/events.txt` into `src/events.dat`.                            |
