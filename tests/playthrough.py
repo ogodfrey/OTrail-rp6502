@@ -50,11 +50,15 @@ def build():
             with open(path, encoding="utf-8") as f:
                 text = f.read()
             with open(path, "w", encoding="utf-8", newline="\n") as f:
-                f.write(text.replace("ROM:", "rom_"))
+                f.write(text.replace("ROM:", "rom_").replace('"PCM:11025,8,1"', '"rom_pcm"'))
     shutil.copy(os.path.join(ROOT, "src", "messages.dat"), os.path.join(HOST, "rom_msg"))
     shutil.copy(os.path.join(ROOT, "src", "talk.txt"), os.path.join(HOST, "rom_talk"))
     shutil.copy(os.path.join(ROOT, "src", "scenes.dat"), os.path.join(HOST, "rom_scenes"))
     shutil.copy(os.path.join(ROOT, "src", "tunes.dat"), os.path.join(HOST, "rom_tunes"))
+    shutil.copy(os.path.join(ROOT, "src", "hyah.pcm"), os.path.join(HOST, "rom_hyah"))
+    shutil.copy(os.path.join(ROOT, "src", "getalong.pcm"), os.path.join(HOST, "rom_getalong"))
+    with open(os.path.join(HOST, "rom_pcm"), "wb"):
+        pass
     shutil.copy(os.path.join(ROOT, "src", "landmarks.dat"), os.path.join(HOST, "rom_landmarks"))
     shutil.copy(os.path.join(ROOT, "src", "events.dat"), os.path.join(HOST, "rom_events"))
     sources = [os.path.join(src, n) for n in ("game.c", "main.c", "scene.c", "sound.c", "talk.c", "ui.c", "msg.c")]

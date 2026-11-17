@@ -9,13 +9,21 @@ static unsigned frames, reads, mode, animal, random_calls;
 static unsigned max_hz, last_off;
 static bool sounded, bugle;
 static bool travel_audio;
-static unsigned driver_notes, driver_hz[2];
+static unsigned creak_notes;
+static unsigned effect_off_frame, pcm_bytes, pcm_writes;
+static int expected_voice = -1;
+static const unsigned *event_rolls;
+static unsigned event_roll_count;
 static int aim_x, aim_y, target_x[3];
 struct host_ria RIA = {0};
 
 int test_rand(void)
 {
     unsigned n = random_calls++;
+    if (mode == 17) {
+        assert(n < event_roll_count);
+        return event_rolls[n];
+    }
     if (mode == 8)
         return n % 4 == 3 ? 4 : 0;
     if (mode == 9 || mode == 10)
@@ -69,16 +77,23 @@ void xram0_write(unsigned dest, const void *src, unsigned count)
                reg == 0x61 || reg == 0x64 || reg == 0x81 || reg == 0x84 ||
                reg == 0xE1 || reg == 0xE4 || reg == 0xC1 ||
                reg == 0xA1 || reg == 0xB1);
-        if (reg == 0xB1 && (ram[dest] & 0x20) && ram[XRAM_OPL + 0x41] == 0x18) {
+        if (reg == 0xB1 && (ram[dest] & 0x20)) {
+            static const unsigned expected_hz[] = {330, 370, 415, 392, 349};
             unsigned b = ram[dest];
             unsigned f = ram[XRAM_OPL + 0xA1] | ((b & 3) << 8);
-            if (driver_notes % 5 == 0) {
-                assert(driver_notes / 5 < 2);
-                driver_hz[driver_notes / 5] =
-                    (unsigned)((unsigned long)f * 49716 >> (20 - ((b >> 2) & 7)));
-            }
-            driver_notes++;
+            unsigned hz = (unsigned)((unsigned long)f * 49716 >> (20 - ((b >> 2) & 7)));
+            unsigned expected = expected_hz[creak_notes % 5];
+
+            assert(ram[XRAM_OPL + 0x21] == 0x03 && ram[XRAM_OPL + 0x24] == 0x01);
+            assert(ram[XRAM_OPL + 0x41] == 0x24 && ram[XRAM_OPL + 0x44] == 0x10);
+            assert(ram[XRAM_OPL + 0x61] == 0xA4 && ram[XRAM_OPL + 0x64] == 0xA5);
+            assert(ram[XRAM_OPL + 0x81] == 0x56 && ram[XRAM_OPL + 0x84] == 0x56);
+            assert(ram[XRAM_OPL + 0xC1] == 0x04);
+            assert(hz >= expected - 2 && hz <= expected);
+            creak_notes++;
         }
+        if (reg == 0xB1 && !(ram[dest] & 0x20))
+            effect_off_frame = frames;
     }
     if (dest == XRAM_OPL + 0xB0 && count == 1) {
         unsigned b = ram[dest];
@@ -96,6 +111,33 @@ void xram0_write(unsigned dest, const void *src, unsigned count)
             last_off = frames;
         }
     }
+}
+
+int read_xram(unsigned xaddr, unsigned count, int fildes)
+{
+    assert(xaddr == XRAM_PCM && count == PCM_CHUNK);
+    assert(expected_voice >= 0);
+    assert(frames - effect_off_frame >= 6);
+    return read(fildes, ram + xaddr, count);
+}
+
+int write_xram(unsigned xaddr, unsigned count, int fildes)
+{
+    unsigned char expected[37];
+    int n;
+
+    assert(xaddr >= XRAM_PCM && xaddr + count <= XRAM_PCM + PCM_CHUNK);
+    assert(expected_voice >= 0);
+    if (pcm_writes++ % 4 == 0)
+        return 0; /* A full PCM FIFO must not drop or duplicate samples. */
+    if (count > sizeof expected)
+        count = sizeof expected;
+    n = write(fildes, ram + xaddr, count);
+    assert(n > 0);
+    assert(read(expected_voice, expected, n) == n);
+    assert(memcmp(expected, ram + xaddr, n) == 0);
+    pcm_bytes += n;
+    return n;
 }
 
 static int first_color(unsigned color, unsigned top, unsigned bottom, bool vertical)
@@ -218,6 +260,69 @@ static game_t party(void)
     for (i = 0; i < g.np; i++)
         g.party[i].affl = -1;
     return g;
+}
+
+static void event_timing_case(void)
+{
+    static const unsigned food_rolls[] = {999, 0, 999, 999, 999, 0, 999, 999, 999, 999};
+    static const unsigned health_rolls[] = {999, 0, 999, 999, 100, 1, 0, 999, 999, 999, 999, 999};
+    static const unsigned fruit_rolls[] = {999, 999, 999, 999, 999, 30, 999, 999};
+    game_t g = party();
+
+    mode = 17;
+    event_rolls = food_rolls;
+    event_roll_count = sizeof food_rolls / sizeof *food_rolls;
+    random_calls = 0;
+    g.ox2 = 8;
+    g.tm = 3;
+    g.as = FP(31.0);
+    g.ar = FP(1.0);
+    g.food = 1;
+    run_events(&g); /* Snowbound rest consumes the last food before event 5. */
+    assert(g.day == 2 && g.food == 0);
+    assert(random_calls == event_roll_count);
+
+    g = party();
+    event_rolls = health_rolls;
+    event_roll_count = sizeof health_rolls / sizeof *health_rolls;
+    random_calls = 0;
+    g.ox2 = 8;
+    g.tm = 3;
+    g.as = FP(31.0);
+    g.ar = FP(1.0);
+    g.health = FP(139.0);
+    run_events(&g); /* Rest lowers health stress, but today's illness roll stays fixed. */
+    assert(g.health < FP(139.0) && g.party[1].affl == 3);
+    assert(random_calls == event_roll_count);
+
+    g = party();
+    g.ox2 = 8;
+    g.tm = 3;
+    g.ar = FP(1.0);
+    event_rolls = fruit_rolls;
+    event_roll_count = sizeof fruit_rolls / sizeof *fruit_rolls;
+    start_leg(&g); /* April departure, then the calendar enters May on this leg. */
+    g.has_grave = false;
+    g.month = 4;
+    random_calls = 0;
+    run_events(&g);
+    assert(g.food == 100);
+    g.lm = 1;
+    start_leg(&g);
+    g.has_grave = false;
+    random_calls = 0;
+    run_events(&g);
+    assert(g.food == 120);
+    g.month = 9;
+    random_calls = 0;
+    run_events(&g);
+    assert(g.food == 140);
+    g.lm = 2;
+    start_leg(&g);
+    g.has_grave = false;
+    random_calls = 0;
+    run_events(&g);
+    assert(g.food == 140);
 }
 
 static void hunt_case(unsigned scenario, unsigned species, int food, int expected)
@@ -352,6 +457,7 @@ int main(void)
     loot_case(12, 0, 0, 0, 0);
     loot_case(14, 1, 0, 0, 1);  /* only rejected spares: still an empty wagon */
     measles_case();
+    event_timing_case();
 
     scene_hunt_clear();
     scene_hunt_sprite(156, 112, 5, false);
@@ -425,13 +531,28 @@ int main(void)
     travel_audio = true;
     x = random_calls;
     for (i = 0; i < 8; i++) {
+        unsigned char end;
+
+        pcm_bytes = pcm_writes = 0;
+        if (i % 4 == 3) {
+            expected_voice = open(i == 3 ? "rom_hyah" : "rom_getalong", O_RDONLY);
+            assert(expected_voice >= 0);
+        }
         sound_effect(SFX_CREAK);
-        assert(driver_notes == (i + 1) / 4 * 5);
+        assert(creak_notes == (i + 1) * 5);
+        if (i % 4 == 3) {
+            assert(pcm_bytes > 0 && pcm_writes > 0);
+            if (i == 7)
+                assert(pcm_bytes > 4096);
+            assert(read(expected_voice, &end, 1) == 0);
+            close(expected_voice);
+            expected_voice = -1;
+        } else {
+            assert(pcm_bytes == 0 && pcm_writes == 0);
+        }
     }
     travel_audio = false;
     assert(random_calls == x);
-    assert(driver_hz[0] >= 228 && driver_hz[0] <= 231);
-    assert(driver_hz[1] >= 168 && driver_hz[1] <= 171);
     puts("OK: store availability, measles immunity, hunting, loot, recovery and trail audio");
     return 0;
 }

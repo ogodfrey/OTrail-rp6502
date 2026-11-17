@@ -201,7 +201,7 @@ The next landmark is %s, %d miles away.
 You have reached %s.
 \nPress Enter to continue.
 \nPress Enter to return to the trail.
-Leaving the hunt. Release the keys to return to the trail.
+Leaving the hunt. Release all keys to continue.
 January
 February
 March

@@ -68,4 +68,9 @@ typedef struct
 #define XRAM_OPL 0xE000
 _Static_assert(sizeof(xram_layout_t) + 32 <= XRAM_OPL, "the scene overlaps the OPL2 page");
 
+/* Stream voice clips through XRAM, not the small 6502 stack. */
+#define XRAM_PCM (XRAM_OPL + 256)
+#define PCM_CHUNK 512
+_Static_assert(XRAM_PCM + PCM_CHUNK <= 65536UL, "the PCM buffer exceeds XRAM");
+
 #endif

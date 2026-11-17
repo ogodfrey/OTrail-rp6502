@@ -18,6 +18,8 @@ unsigned char ria_vsync(void);
 void xram0_set(unsigned dest, unsigned char val, unsigned count);
 void xram0_write(unsigned dest, const void *src, unsigned count);
 void xram0_read(void *dest, unsigned src, unsigned count);
+int read_xram(unsigned xaddr, unsigned count, int fildes);
+int write_xram(unsigned xaddr, unsigned count, int fildes);
 
 /* Host stdin is a pipe, separate from the raw UART readiness flag. */
 struct host_ria {

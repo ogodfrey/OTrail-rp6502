@@ -122,9 +122,12 @@ opposite-direction travel, edge respawns, and mirrored animal sprites. It also c
 post-hunt food accounting, the return prompt, actual abandoned-wagon supplies,
 store availability only at store landmarks, per-member measles immunity,
 recovery notices, sprite bounds, high-note pitch, restoration of the banjo
-voice after bugle calls, and driver-call cadence without changing game randomness
-or the music channel. After building Release, it also drives real HID aiming,
-firing, Escape, and the return to the menu in the v0.43 emulator.
+voice after bugle calls, daily event-odds snapshots through event-triggered rest,
+per-leg fruit seasons across month boundaries, and driver-call cadence without
+changing game randomness or the music channel. PCM streaming is checked byte for
+byte with partial writes and a full FIFO. After building Release, it also drives real HID aiming,
+firing, Escape, and the return to the menu in the v0.43 emulator, and captures
+both sampled calls to check their XRAM data and non-silent audio.
 
 ```bash
 python tests/gameplaytest.py
@@ -270,8 +273,14 @@ possible. Starting a new game resets this immunity.
 
 ### Random events
 
-Events are checked once a travel day, in order. Each has the chance from the
-spec, and a handler applies its effect. The text of an event is shown in bright
+Events are checked once a travel day, in order, and never rolled on rest days.
+The daily probabilities are snapshotted before any event runs, matching OpenTrail:
+an earlier event that costs days does not change the remaining probabilities for
+that travel day. Wild fruit eligibility is fixed when each leg begins (May through
+September), including alternate routes, and stays fixed until the next leg even
+if the month changes. Base chances are unchanged.
+Each event has the chance from the spec, and a handler applies its effect.
+The text of an event is shown in bright
 yellow, so it stands out from the rest of the trail messages. The effects are:
 
 * Snowbound (certain when snow is over 30 inches): lose 1 to 10 days.
@@ -444,16 +453,27 @@ whose OPL2 core was tested against YM3812-LLE. Update board firmware to v0.43
 for matching audio and its cleaner hardware output.
 
 Separate FM patches provide plucked banjo, sustained brass, river effects,
-wooden creaks, hunting gunshots, and wordless driver calls. Notes above the block-4 pitch range select
+wooden creaks, and hunting gunshots. Notes above the block-4 pitch range select
 a higher octave block rather than overflowing the frequency number, and notes
-have a one-frame key-off gap so repeated pitches retrigger.
+have a one-frame key-off gap so repeated pitches retrigger, except for the
+wheel creak, which uses connected timing.
 
 Sound effects play for river crossings and arriving at a fort. On each travel day when the wagon moves, a
-wheel creak plays: uneven, percussive scrapes and a low groan on OPL2 channel 1,
+wheel creak plays: a quieter midrange squeak with reduced FM feedback on OPL2 channel 1,
 with its patch set in `src/sound.c` and its notes streamed from `src/tunes.dat`.
-Every fourth moving day adds one of two alternating synthesized ox-driving
-calls. These are retro FM yelps, not recorded speech; their private counter does
-not consume game randomness or alter the music channel.
+Every fourth moving day adds one of two alternating spoken ox-driving
+calls, "Hyah!" and "Get along!", after a brief pause. These prototype clips use
+the offline Windows Microsoft David Desktop text-to-speech voice, not an actor.
+`python assets/make_driver_calls.py` regenerates `src/hyah.pcm` and `src/getalong.pcm`
+on Windows; the generated clips are included so normal builds need no speech tools.
+Voice clips use half the prototype's initial amplitude (about 6 dB quieter)
+to balance them against the music, without changing OPL2 volume.
+The unsigned 8-bit, 11025 Hz mono samples stream from ROM through a 512-byte
+XRAM buffer at `$E100` to `PCM:11025,8,1`. The 4 KB playback FIFO belongs to the
+host, not 6502 RAM. Playback handles partial writes and waits for the clip to
+finish before continuing. Missing samples or an unavailable PCM device report
+an error instead of falling back to musical tones. The private travel counter
+does not consume game randomness or alter the music channel.
 Each landmark from the Kansas River on has its own bugle tune, played when
 you arrive; the tunes are in `src/tunes.dat` and are read from disk on arrival. Each of the
 six forts has its own march, which follows the brass fort fanfare. When you reach
@@ -506,12 +526,13 @@ same file.
 | `src/msg.c`, `src/msg.h`     | Streams numbered ROM messages and short labels into separate reusable buffers.                    |
 | `src/messages.txt`           | The messages, one per line: line number is the message id. Escapes: `\n` and `\\`.                |
 | `src/messages.dat`           | The msg asset: 80-byte records, one message each, written by `assets/make_messages.py`.           |
-| `src/sound.c`, `src/sound.h` | OPL2 sound: the title tune, banjo riffs, landmark tunes, the ditty, and short effects.            |
+| `src/sound.c`, `src/sound.h` | OPL2 music/effects and streamed PCM driver voices.                                                |
 | `src/ui.c`, `src/ui.h`       | Console helpers: line input, numbered prompts, pauses, and money formatting.                      |
 | `src/xram.h`                 | XRAM map: scene config, palette, bitmap, and VGA macros.                                          |
 | `src/help.txt`               | The help text stored in the ROM as the `help` asset.                                              |
 | `src/scenes.dat`             | The scenes asset: the thirty-eight pictures, both palettes, and the journey route.                |
 | `src/tunes.dat`              | The tunes asset: landmark and event tunes, read from disk when they play.                         |
+| `src/*.pcm`                  | Prototype spoken driver calls: 11025 Hz unsigned 8-bit mono.                                      |
 | `src/landmarks.txt`          | The landmarks, one per line: name, type, legs, and the pictures at each.                          |
 | `src/landmarks.dat`          | The landmarks asset: 24-byte records, read from disk on arrival.                                  |
 | `src/events.txt`             | The event pictures, one per line in event order: event and picture.                               |
@@ -520,6 +541,7 @@ same file.
 | `assets/journey_route.bin`   | The 24-point route the wagon marker follows on the journey map.                                   |
 | `assets/make_scenes.py`      | Packs the scene pictures and the journey route into `src/scenes.dat`.                             |
 | `assets/make_tunes.py`       | Writes the landmark tunes into `src/tunes.dat`.                                                   |
+| `assets/make_driver_calls.py`| Generates prototype driver speech using the offline Windows David voice.                          |
 | `assets/make_landmarks.py`   | Writes the landmarks from `src/landmarks.txt` into `src/landmarks.dat`.                           |
 | `assets/make_messages.py`    | Writes the game messages from `src/messages.txt` into `src/messages.dat`.                         |
 | `assets/make_events.py`      | Writes the event pictures from `src/events.txt` into `src/events.dat`.                            |

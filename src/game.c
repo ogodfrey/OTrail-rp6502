@@ -162,7 +162,9 @@ typedef struct {
     unsigned long visited;
     grave_t grave;
     bool has_grave;
+    /* Keep this frequently used field within the 6502's byte-indexed offset. */
     unsigned char art;
+    bool leg_fruit;
 } game_t;
 
 /* Reads landmark i from the landmarks asset (src/landmarks.dat). Its name is copied into
@@ -701,7 +703,7 @@ static void show_map(game_t *g)
     ui_pause();
 }
 
-static long event_chance(const game_t *g, int k, int zone)
+static uint16_t event_chance(const game_t *g, int k, int zone)
 {
     switch (k) {
     case 0: return g->as > FP(30.0) ? FX : 0;
@@ -714,7 +716,7 @@ static long event_chance(const game_t *g, int k, int zone)
     case 8: return FP(0.04) + (zone > 2 ? FP(0.03) : 0);
     case 9: return FP(0.02);
     case 10: return zone > 2 ? FP(0.05) : 0;
-    case 11: return (g->month >= 4 && g->month <= 8) ? FP(0.04) : 0;
+    case 11: return g->leg_fruit ? FP(0.04) : 0;
     case 12: return FP(0.01);
     case 13: return FP(0.02);
     case 14: return g->ar < FP(0.1) ? FP(0.5) : 0;
@@ -887,11 +889,15 @@ static void run_event(game_t *g, int k)
 
 static void run_events(game_t *g)
 {
+    uint16_t probabilities[15];
     int zone = zone_of(g->lm);
     int k;
 
+    /* Earlier events can run rest days; keep this travel day's original odds. */
+    for (k = 0; k < 15; k++)
+        probabilities[k] = event_chance(g, k, zone);
     for (k = 0; k < 15 && g->np > 0; k++) {
-        long p = event_chance(g, k, zone);
+        uint16_t p = probabilities[k];
         if (p > 0 && chance(p)) {
             event_text = true;
             g->art = NO_ART;
@@ -1549,12 +1555,15 @@ static bool action_menu(game_t *g, bool at_landmark)
     }
 }
 
-static void announce_next(game_t *g)
+static void begin_leg(game_t *g, int leg)
 {
     char buf[120], name[LANDMARK_NAME_LEN];
     landmark_t lm;
 
-    landmark_read(legs[g->leg].to, &lm, name);
+    g->leg = leg;
+    g->dist = (long)legs[leg].miles * FX;
+    g->leg_fruit = g->month >= 4 && g->month <= 8;
+    landmark_read(legs[leg].to, &lm, name);
     sprintf(buf, msg_get(199),
             name, (int)legs[g->leg].miles);
     say(g, buf);
@@ -1566,9 +1575,7 @@ static void start_leg(game_t *g)
     landmark_t lm;
 
     landmark_read(g->lm, &lm, NULL);
-    g->leg = lm.leg;
-    g->dist = (long)legs[g->leg].miles * FX;
-    announce_next(g);
+    begin_leg(g, lm.leg);
 }
 
 static void split_choice(game_t *g)
@@ -1586,9 +1593,7 @@ static void split_choice(game_t *g)
     printf(msg_get(89));
     printf(msg_get(90), na, (int)legs[a].miles);
     printf(msg_get(91), nb, (int)legs[b].miles);
-    g->leg = ui_ask_int(msg_get(92), 1, 2) == 1 ? a : b;
-    g->dist = (long)legs[g->leg].miles * FX;
-    announce_next(g);
+    begin_leg(g, ui_ask_int(msg_get(92), 1, 2) == 1 ? a : b);
 }
 
 static void ford(game_t *g, const river_t *r, long depth, long ix)
@@ -1801,9 +1806,7 @@ static bool dalles_choice(game_t *g)
             continue;
         }
         g->money -= toll;
-        g->leg = 18;
-        g->dist = (long)legs[18].miles * FX;
-        announce_next(g);
+        begin_leg(g, 18);
         return true;
     }
 }

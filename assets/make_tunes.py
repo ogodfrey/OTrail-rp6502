@@ -17,7 +17,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "src", "tunes.dat")
 LANDMARKS = 18
 EVENTS = 20
-EFFECTS = 10
+EFFECTS = 8
 ENTRIES = LANDMARKS + EVENTS + EFFECTS
 ENTRY = struct.Struct("<HB")
 NOTE = struct.Struct("<HB")
@@ -87,8 +87,8 @@ TUNES = {
     # OPL2 patch is set in sound.c. The death riff is sad, in a minor key.
     38: [(392, 4), (349, 4), (330, 4), (294, 6)],
     39: [(392, 6), (523, 6), (659, 6), (784, 18), (659, 6), (523, 18)],
-    # Uneven wooden friction: short rising scrapes, a pause, then a lower groan.
-    40: [(96, 3), (121, 2), (166, 3), (139, 2), (88, 3), (0, 3), (73, 4), (118, 3)],
+    # A light midrange squeak, rising and easing back without a bass growl.
+    40: [(330, 5), (370, 5), (415, 5), (392, 5), (349, 5)],
     41: [(440, 16), (392, 16), (349, 16), (330, 16), (294, 40)],
     # Original bugle call using the open horn's C/G harmonic series.
     42: [(392, 8), (392, 8), (523, 16), (0, 4), (659, 8), (784, 24),
@@ -97,9 +97,6 @@ TUNES = {
     44: [(330, 8), (0, 6), (330, 8), (0, 6), (294, 8), (0, 6), (262, 24)],
     # Dysentery ending: a slow minor-key tune, a bit longer than the title, that sinks to a low end.
     45: [(220, 36), (262, 24), (294, 24), (330, 36), (0, 12), (294, 24), (262, 24), (247, 36), (220, 36), (0, 12), (196, 48)],
-    # Wordless FM driver calls, alternating every fourth moving travel day.
-    46: [(170, 2), (230, 2), (310, 3), (390, 3), (260, 3)],
-    47: [(230, 3), (310, 3), (360, 4), (280, 3), (200, 3)],
 }
 
 

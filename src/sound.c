@@ -20,7 +20,7 @@ static void opl_poke(unsigned reg, unsigned char val)
     xram0_write(XRAM_OPL + reg, &val, 1);
 }
 
-enum { VOICE_BANJO, VOICE_BUGLE, VOICE_RIVER, VOICE_CREAK, VOICE_SHOT, VOICE_DRIVER };
+enum { VOICE_BANJO, VOICE_BUGLE, VOICE_RIVER, VOICE_CREAK, VOICE_SHOT };
 
 /* Paired operator registers followed by channel feedback. Only channels 0 and 1
    are used, whose modulator/carrier slots are c and c+3. */
@@ -33,9 +33,8 @@ static void patch(uint8_t c, uint8_t voice)
         {0x21, 0x21, 0x1A, 0x08, 0xF9, 0xD6, 0xF0, 0xF4, 0, 0, 0x0A},
         {0x21, 0x21, 0x24, 0x08, 0xA3, 0x92, 0x34, 0x27, 0, 0, 0x04},
         {0x01, 0x02, 0x08, 0x10, 0x84, 0x74, 0x47, 0x47, 0, 0, 0x0E},
-        {0x01, 0x01, 0x08, 0x14, 0xB4, 0xD5, 0x46, 0x56, 0, 0, 0x0E},
+        {0x03, 0x01, 0x24, 0x10, 0xA4, 0xA5, 0x56, 0x56, 0, 0, 0x04},
         {0x0F, 0x01, 0x00, 0x08, 0xF8, 0xF8, 0x08, 0x08, 0, 0, 0x0E},
-        {0x22, 0x61, 0x18, 0x0C, 0xE2, 0xC2, 0x47, 0x27, 0, 0, 0x06},
     };
     uint8_t i;
 
@@ -88,7 +87,7 @@ void sound_init(void)
    entry is three bytes, the offset and count of the notes, and each note is three bytes. */
 #define LANDMARK_COUNT 18
 #define EVENT_COUNT 20
-#define EFFECT_COUNT 10
+#define EFFECT_COUNT 8
 #define EFFECT_BASE (LANDMARK_COUNT + EVENT_COUNT)
 #define TUNE_ENTRIES (EFFECT_BASE + EFFECT_COUNT)
 #define MAX_TUNE_NOTES 20
@@ -129,9 +128,48 @@ static void play_tune(uint8_t c, unsigned index)
             note_on(c, hz);
         wait_frames(note[2]);
         note_off(c);
-        wait_frames(1);
+        if (index != EFFECT_BASE + 2)
+            wait_frames(1);
     }
     close(fd);
+}
+
+static void driver_call(void)
+{
+    int input = open((travel_step & 4) ? "ROM:hyah" : "ROM:getalong", O_RDONLY);
+    int pcm, count;
+
+    if (input < 0) {
+        perror("Driver audio");
+        return;
+    }
+    pcm = open("PCM:11025,8,1", O_WRONLY);
+    if (pcm < 0) {
+        perror("Driver audio");
+        close(input);
+        return;
+    }
+    while ((count = read_xram(XRAM_PCM, PCM_CHUNK, input)) > 0) {
+        unsigned sent = 0;
+
+        while (sent < (unsigned)count) {
+            int n = write_xram(XRAM_PCM + sent, count - sent, pcm);
+
+            if (n < 0) {
+                perror("Driver audio");
+                goto done;
+            }
+            if (n == 0)
+                wait_frames(1);
+            sent += n;
+        }
+    }
+    if (count < 0)
+        perror("Driver audio");
+done:
+    if (close(pcm) < 0)
+        perror("Driver audio");
+    close(input);
 }
 
 void sound_title(void)
@@ -174,8 +212,8 @@ void sound_effect(sfx_t sfx)
         patch(EFFECT_CHANNEL, VOICE_CREAK);
         play_tune(EFFECT_CHANNEL, EFFECT_BASE + 2);
         if (!(++travel_step & 3)) {
-            patch(EFFECT_CHANNEL, VOICE_DRIVER);
-            play_tune(EFFECT_CHANNEL, EFFECT_BASE + 8 + ((travel_step >> 2) & 1));
+            wait_frames(6);
+            driver_call();
         }
         break;
     case SFX_DEATH:
